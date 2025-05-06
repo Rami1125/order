@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
+  <meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self' https://*.googleapis.com https://*.google.com;
+               script-src 'self' https://*.google.com https://*.gstatic.com;
+               connect-src 'self' https://*.googleapis.com">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://script.google.com https://script.googleusercontent.com">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1069,7 +1073,7 @@
         ];
         
         // Web App URL
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynk-CmliXRYhiIJ4cSkCNA7PyY8XOynpp_CSJ8lacM2gPk5KDTV2dWmCCrppyXvX1N3w/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw48FHlkPiYwwqBWYaNrFkm_uBJVDcdTeRxIb5YrYAt3L-sldsO9EaS9EDh9r6Aj9usDA/exec';
         
         // Fuse.js for fuzzy search
         const fuse = new Fuse(products, {
