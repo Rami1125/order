@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://script.google.com https://script.googleusercontent.com">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>טופס הזמנה חדשה - ח.סבן חומרי בניין</title>
@@ -11,10 +12,34 @@
                 extend: {
                     colors: {
                         primary: '#3b82f6',
-                        secondary: '#93c5fd'
+                        secondary: '#93c5fd',
+                        accent: '#4f46e5',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444'
                     },
                     borderRadius: {
+                        'none': '0px',
+                        'sm': '4px',
+                        DEFAULT: '8px',
+                        'md': '12px',
+                        'lg': '16px',
+                        'xl': '20px',
+                        '2xl': '24px',
+                        '3xl': '32px',
+                        'full': '9999px',
                         'button': '8px'
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'medium': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                        'hard': '0 12px 40px rgba(0, 0, 0, 0.15)'
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                        '22': '5.5rem',
+                        '26': '6.5rem',
+                        '30': '7.5rem'
                     }
                 }
             }
@@ -22,148 +47,592 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        .bg-pattern {
+            background-image: url("https://i.postimg.cc/HnzW9HzJ/20250503-123540-0000.png");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .floating-label {
+            position: absolute;
+            pointer-events: none;
+            right: 1rem;
+            top: 0.75rem;
+            transition: 0.2s ease all;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        input:focus ~ .floating-label,
+        input:not(:placeholder-shown) ~ .floating-label,
+        select:focus ~ .floating-label,
+        select:not([value=""]) ~ .floating-label {
+            top: -0.5rem;
+            right: 0.75rem;
+            font-size: 0.75rem;
+            opacity: 1;
+            background: white;
+            padding: 0 0.25rem;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            z-index: 99;
+            top: 100%;
+            right: 0;
+            left: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .autocomplete-items div {
+            padding: 10px 12px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #f1f5f9;
+            transition: all 0.2s;
+        }
+        
+        .autocomplete-items div:hover {
+            background-color: #f8fafc;
+        }
+        
+        .autocomplete-active {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+        }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-content {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 1rem;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 420px;
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
+
+        .popup-overlay.active .popup-content {
+            transform: scale(1);
+        }
+
+        /* Branch cards styling */
+        .branch-card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .branch-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: #93c5fd;
+        }
+
+        .branch-title {
+            font-weight: 600;
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .branch-hours {
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .branch-hours span {
+            color: #64748b;
+            font-weight: normal;
+        }
+
+        .branch-phone {
+            margin-top: 0.5rem;
+            color: #475569;
+        }
+
+        .branch-address {
+            margin-top: 0.5rem;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+
+        .branch-button {
+            margin-top: 0.75rem;
+            width: 100%;
+        }
+
+        /* Color customization popup */
+        .color-option {
+            display: inline-block;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            margin: 0.3rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-option.selected {
+            border-color: #3b82f6;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Marketing button styles */
+        .marketing-button {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            text-align: center;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .marketing-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+        }
+
+        .marketing-button i {
+            margin-left: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Input and select styles */
+        input, select, textarea {
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+            outline: none;
+        }
+
+        /* Button styles */
+        .btn {
+            transition: all 0.3s;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        /* Item card styles */
+        .item-card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #93c5fd;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .popup-content {
+                width: 95%;
+                padding: 1.25rem;
+            }
+            
+            .branch-card {
+                padding: 0.75rem;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Section animations */
+        .section-transition {
+            transition: all 0.3s ease;
+        }
+
+        /* Tab bar styles */
+        .tab-bar {
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-item {
+            transition: all 0.2s;
+        }
+
+        .tab-item.active {
+            color: #3b82f6;
+        }
+
+        .tab-item.active i {
+            transform: translateY(-2px);
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom animations */
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-15px); }
+            60% { transform: translateY(-7px); }
+        }
+
+        .animate-bounce {
+            animation: bounce 2s infinite;
+        }
+
+        /* Form element styles */
+        .form-control {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+
+        /* Enhanced header */
+        .main-header {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Logo styles */
+        .logo {
+            height: 2.5rem;
+            transition: all 0.3s;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        /* Progress bar */
+        .progress-container {
+            height: 0.5rem;
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+
+        /* Success message */
+        .success-icon {
+            width: 4rem;
+            height: 4rem;
+        }
+
+        /* Calendar styles */
+        .calendar-input {
+            padding: 0.75rem 1rem;
+        }
+
+        /* CRM popup */
+        .crm-popup {
+            transform: translateY(20px) scale(0.95);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .crm-popup.show {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .crm-header {
+            background: linear-gradient(135deg, #3b82f6, #4f46e5);
+        }
+
+        /* Welcome popup */
+        .welcome-icon {
+            font-size: 3.5rem;
+        }
+
+        /* Confirmation modal */
+        .confirmation-modal {
+            backdrop-filter: blur(5px);
+        }
+
+        .confirmation-content {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body class="bg-pattern min-h-screen font-sans text-gray-800">
-    <div id="welcomePopup" class="popup-overlay active">
-        <div class="popup-content">
-            <span class="close-button" onclick="closeWelcomePopup()">×</span>
-            <div class="welcome-icon"><i class="ri-building-line"></i></div>
+    <!-- Welcome Popup -->
+    <div id="welcomePopup" class="welcome-popup">
+        <div class="welcome-content">
+            <div class="welcome-icon text-primary animate-bounce">
+                <i class="ri-building-line"></i>
+            </div>
             <div class="welcome-title">ברוכים הבאים למחלקת ההזמנות!</div>
             <div class="welcome-message">
                 אנו בח.סבן חומרי בניין שמחים לראותכם כאן.<br>
                 מערכת ההזמנות החדשה שלנו תאפשר לכם לבצע הזמנות בקלות ובמהירות.
             </div>
-            <button onclick="closeWelcomePopup()" class="w-full bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">
+            <button onclick="closeWelcomePopup()" class="w-full btn btn-primary py-3 rounded-button">
                 התחל הזמנה
             </button>
         </div>
     </div>
 
-    <div id="crmPopup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-button" onclick="closeCrmPopup()">×</span>
-            <div class="crm-header">
-                <span>ח.סבן - מחלקת הזמנות</span>
-            </div>
-            <div class="crm-body">
-                <strong>שירות מהיר ואמין!</strong><br>
-                הזמנתך תתקבל תוך דקות ותטופל במהירות על ידי צוותנו המקצועי.
-            </div>
+    <!-- CRM Popup Notification -->
+    <div id="crmPopup" class="crm-popup">
+        <div class="crm-header">
+            <span class="font-medium">ח.סבן - מחלקת הזמנות</span>
+            <span class="crm-close" onclick="closeCrmPopup()">×</span>
+        </div>
+        <div class="crm-body">
+            <strong>שירות מהיר ואמין!</strong><br>
+            אנו כאן כדי לסייע לך בכל שאלה או בקשה בנוגע להזמנתך. ניתן לפנות אלינו בכל עת.
         </div>
     </div>
 
-    <div id="confirmationModal" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-button" onclick="closeConfirmationModal()">×</span>
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="confirmation-modal hidden">
+        <div class="confirmation-content">
             <h3 class="text-lg font-bold text-primary mb-4">אישור שליחת הזמנה</h3>
-            <p class="text-gray-600 mb-4">בדוק את פרטי ההזמנה לפני השליחה.</p>
+            <p class="text-gray-600 mb-4">האם אתה בטוח שברצונך לשלוח את ההזמנה? בדוק את פרטי ההזמנה לפני השליחה.</p>
             <div id="confirmationSummary" class="text-sm text-gray-600 mb-4"></div>
             <div class="flex space-x-4 space-x-reverse">
-                <button onclick="confirmOrder()" class="w-1/2 bg-green-500 text-white py-3 rounded-button hover:bg-green-600">שלח</button>
-                <button onclick="closeConfirmationModal()" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300">בטל</button>
+                <button onclick="confirmOrder()" class="w-1/2 btn btn-success py-3">שלח</button>
+                <button onclick="closeConfirmationModal()" class="w-1/2 btn btn-secondary py-3">בטל</button>
             </div>
         </div>
     </div>
 
+    <!-- Color Customization Popup -->
     <div id="colorPopup" class="popup-overlay">
         <div class="popup-content">
-            <span class="close-button" onclick="closeColorPopup()">×</span>
             <h3 class="text-lg font-bold text-primary mb-4">בחירת גוון צבע</h3>
             <p class="text-gray-600 mb-4">בחר את הגוון הרצוי ואנו נכין עבורך את המוצר בסניף שבחרת:</p>
+            
             <div class="text-center mb-4">
-                <div class="color-option selected" style="background-color: #ffffff;" data-color="לבן" onclick="selectColor(this, 'לבן')"></div>
-                <div class="color-option" style="background-color: #f1f1f1;" data-color="אפור בהיר" onclick="selectColor(this, 'אפור בהיר')"></div>
-                <div class="color-option" style="background-color: #cccccc;" data-color="אפור" onclick="selectColor(this, 'אפור')"></div>
-                <div class="color-option" style="background-color: #ffebee;" data-color="ורוד בהיר" onclick="selectColor(this, 'ורוד בהיר')"></div>
-                <div class="color-option" style="background-color: #fff8e1;" data-color="צהוב בהיר" onclick="selectColor(this, 'צהוב בהיר')"></div>
-                <div class="color-option" style="background-color: #e8f5e9;" data-color="ירוק בהיר" onclick="selectColor(this, 'ירוק בהיר')"></div>
-                <div class="color-option" style="background-color: #e3f2fd;" data-color="כחול בהיר" onclick="selectColor(this, 'כחול בהיר')"></div>
-                <div class="color-option" style="background-color: #f3e5f5;" data-color="סגול בהיר" onclick="selectColor(this, 'סגול בהיר')"></div>
+                <div class="color-option selected" style="background-color: #ffffff;" onclick="selectColor(this, 'לבן')"></div>
+                <div class="color-option" style="background-color: #f1f1f1;" onclick="selectColor(this, 'אפור בהיר')"></div>
+                <div class="color-option" style="background-color: #cccccc;" onclick="selectColor(this, 'אפור')"></div>
+                <div class="color-option" style="background-color: #ffebee;" onclick="selectColor(this, 'ורוד בהיר')"></div>
+                <div class="color-option" style="background-color: #fff8e1;" onclick="selectColor(this, 'צהוב בהיר')"></div>
+                <div class="color-option" style="background-color: #e8f5e9;" onclick="selectColor(this, 'ירוק בהיר')"></div>
+                <div class="color-option" style="background-color: #e3f2fd;" onclick="selectColor(this, 'כחול בהיר')"></div>
+                <div class="color-option" style="background-color: #f3e5f5;" onclick="selectColor(this, 'סגול בהיר')"></div>
             </div>
-            <div class="input-container">
+            
+            <div class="relative mb-4">
                 <select id="colorBranch" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
                     <option value="התלמיד 6, הוד השרון">סניף התלמיד 6, הוד השרון</option>
                     <option value="החרש 10, הוד השרון">סניף החרש 10, הוד השרון</option>
                 </select>
                 <label for="colorBranch" class="floating-label text-gray-500">סניף לאיסוף</label>
             </div>
+            
             <div class="flex space-x-4 space-x-reverse">
-                <button onclick="submitColorSelection()" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600">אישור</button>
-                <button onclick="closeColorPopup()" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300">ביטול</button>
+                <button onclick="submitColorSelection()" class="w-1/2 btn btn-primary py-3">אישור</button>
+                <button onclick="closeColorPopup()" class="w-1/2 btn btn-secondary py-3">ביטול</button>
             </div>
         </div>
     </div>
 
+    <!-- Self Pickup Hours Popup -->
     <div id="pickupHoursPopup" class="popup-overlay">
         <div class="popup-content">
-            <span class="close-button" onclick="closePickupHoursPopup()">×</span>
             <h3 class="text-lg font-bold text-primary mb-4">שעות איסוף עצמי</h3>
+            
             <div class="branch-card">
                 <div class="branch-title">סניף התלמיד 6, הוד השרון</div>
                 <div class="branch-hours">שעות איסוף: <span>06:00-16:00</span></div>
                 <div class="branch-phone">טלפון: 09-7602010</div>
                 <div class="branch-address">כתובת: התלמיד 6, הוד השרון</div>
-                <button onclick="navigateToBranch('התלמיד 6, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                <button onclick="navigateToBranch('התלמיד 6, הוד השרון')" class="branch-button btn btn-primary py-2">
                     <i class="ri-map-pin-line"></i> ניווט לסניף
                 </button>
             </div>
+            
             <div class="branch-card">
                 <div class="branch-title">סניף החרש 10, הוד השרון</div>
                 <div class="branch-hours">שעות איסוף: <span>06:00-16:00</span></div>
                 <div class="branch-phone">טלפון: 09-7402575</div>
                 <div class="branch-address">כתובת: החרש 10, הוד השרון</div>
-                <button onclick="navigateToBranch('החרש 10, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                <button onclick="navigateToBranch('החרש 10, הוד השרון')" class="branch-button btn btn-primary py-2">
                     <i class="ri-map-pin-line"></i> ניווט לסניף
                 </button>
             </div>
-            <button onclick="closePickupHoursPopup()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 mt-4">
+            
+            <button onclick="closePickupHoursPopup()" class="w-full btn btn-secondary py-3 mt-4">
                 סגור
             </button>
         </div>
     </div>
 
-    <div id="historyPopup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-button" onclick="closeHistoryPopup()">×</span>
-            <h3 class="text-lg font-bold text-primary mb-4">היסטוריית הזמנות</h3>
-            <div id="historyDetails" class="text-sm text-gray-600"></div>
-        </div>
-    </div>
-
-    <div id="calendarPopup" class="popup-overlay">
-        <div class="popup-content">
-            <span class="close-button" onclick="closeCalendar()">×</span>
-            <h3 class="text-lg font-bold text-primary mb-4">בחר תאריך אספקה</h3>
-            <input type="date" id="calendarInput" class="w-full px-4 py-3 border border-gray-300 rounded-button mb-4">
-            <div class="flex space-x-4 space-x-reverse">
-                <button type="button" onclick="selectDate()" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600">אישור</button>
-                <button type="button" onclick="closeCalendar()" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300">ביטול</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="ledNotification" class="led-notification">
-        <span class="led-text"></span>
-    </div>
-
     <div class="max-w-md mx-auto pb-20 pt-4 px-4">
-        <header class="fixed top-0 right-0 left-0 z-50 bg-white bg-opacity-90 backdrop-blur-md shadow-sm px-4 py-3 flex items-center justify-between">
+        <!-- Header -->
+        <header class="fixed top-0 right-0 left-0 z-50 bg-white bg-opacity-90 backdrop-blur-md shadow-sm px-4 py-3 flex items-center justify-between main-header">
             <h1 class="text-xl font-['Pacifico'] text-primary">
-                <img src="https://i.postimg.cc/cJFsg4Zf/unnamed.jpg" alt="ח.סבן חומרי בניין לוגו" class="h-8 w-auto">
+                <img src="https://i.postimg.cc/cJFsg4Zf/unnamed.jpg" alt="ח.סבן חומרי בניין לוגו" class="h-8 w-auto logo">
             </h1>
             <div class="text-lg font-bold">טופס הזמנה חדשה</div>
         </header>
-
+        
         <div class="mt-16 mb-4">
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div id="progress-bar" class="bg-primary h-2 rounded-full" style="width: 20%"></div>
+            <div class="w-full bg-gray-200 rounded-full h-2 progress-container">
+                <div id="progress-bar" class="bg-primary h-2 rounded-full progress-bar" style="width: 20%"></div>
             </div>
             <div class="flex justify-between mt-1 text-xs text-gray-500">
                 <span>ברוכים הבאים</span>
@@ -173,13 +642,17 @@
                 <span>סיום</span>
             </div>
         </div>
-
+        
+        <!-- Main Form -->
         <form id="orderForm" class="space-y-6">
-            <section id="section-welcome" class="glassmorphism rounded-xl p-5 space-y-4 fade-in">
+            <!-- Welcome Section -->
+            <section id="section-welcome" class="glassmorphism !rounded-xl p-5 space-y-4 fade-in">
                 <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
                     <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">1</div>
                     ברוכים הבאים
                 </h2>
+                
+                <!-- Marketing message with customer name -->
                 <div id="welcomeMessage" class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
                     <p class="font-medium" id="personalWelcome">ברוכים הבאים! אנא מלאו את פרטי ההזמנה</p>
                     <p class="text-sm mt-2">האם ידעת שניתן לגוון צבע בהזמנה ולהגיע לסניף ויהיה לך מוכן?!</p>
@@ -187,47 +660,55 @@
                         <i class="ri-palette-line"></i> בחר גוון צבע
                     </button>
                 </div>
-                <div class="marketing-links">
-                    <button type="button" onclick="showSection(5)" class="marketing-button">מידע על מחלקת הזמנות</button>
-                    <button type="button" onclick="showSection(6)" class="marketing-button">שעות פעילות</button>
-                    <a href="https://sites.google.com/view/sb94/home/%D7%AA%D7%9B%D7%A0%D7%95%D7%9F-%D7%91%D7%A0%D7%99%D7%94" target="_blank" class="marketing-button">
-                        <i class="ri-leaf-line"></i> בנייה ירוקה
-                    </a>
-                    <a href="https://sites.google.com/view/sb94/home/%D7%9E%D7%97%D7%A9%D7%99%D7%91%D7%95%D7%9F" target="_blank" class="marketing-button">
-                        <i class="ri-calculator-line"></i> מחשבוני חומרי בניין
-                    </a>
-                </div>
-                <button type="button" id="nextToCustomer" class="w-full bg-green-500 text-white py-3 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer">הזמנה חדשה</button>
+                
+                <button type="button" onclick="showSection(5)" class="block w-full btn btn-primary py-3 text-center">מידע על מחלקת הזמנות</button>
+                <button type="button" onclick="showSection(6)" class="block w-full btn btn-primary py-3 text-center">שעות פעילות</button>
+                
+                <!-- Marketing buttons -->
+                <a href="https://sites.google.com/view/sb94/home/%D7%AA%D7%9B%D7%A0%D7%95%D7%9F-%D7%91%D7%A0%D7%99%D7%94" target="_blank" class="marketing-button">
+                    <i class="ri-leaf-line"></i> בנייה ירוקה - הדרך לבנייה חכמה ושמירה על הסביבה!
+                </a>
+                
+                <a href="https://sites.google.com/view/sb94/home/%D7%9E%D7%97%D7%A9%D7%91%D7%95%D7%9F" target="_blank" class="marketing-button">
+                    <i class="ri-calculator-line"></i> מחשבוני חומרי בנין ללוחות גבס, בלוקים, דבקים ועוד
+                </a>
+                
+                <button type="button" id="nextToCustomer" class="w-full btn btn-success py-3">הזמנה חדשה</button>
             </section>
-
-            <section id="section-customer" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+            
+            <!-- Customer Details Section -->
+            <section id="section-customer" class="glassmorphism !rounded-xl p-5 space-y-4 hidden">
                 <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
                     <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">2</div>
                     פרטי לקוח
                 </h2>
-                <div class="input-container">
-                    <input type="text" id="customerName" name="customerName" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" required placeholder=" " oninput="updateWelcomeMessage();fetchCustomerData(this.value)">
+                
+                <div class="form-control">
+                    <input type="text" id="customerName" name="customerName" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" required placeholder=" " oninput="updateWelcomeMessage()">
                     <label for="customerName" class="floating-label text-gray-500">שם לקוח *</label>
                 </div>
-                <div class="input-container">
-                    <input type="tel" id="customerPhone" name="customerPhone" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" required placeholder=" " pattern="[0-9]{10}" oninput="fetchCustomerData(this.value)">
+                
+                <div class="form-control">
+                    <input type="tel" id="customerPhone" name="customerPhone" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" required placeholder=" " pattern="[0-9]{10}">
                     <label for="customerPhone" class="floating-label text-gray-500">טלפון *</label>
                     <small class="text-gray-500 block mt-1">לדוגמה: 0501234567</small>
                 </div>
-                <button type="button" onclick="showHistoryPopup()" class="w-full bg-blue-500 text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">הצג היסטוריית לקוח</button>
+                
                 <div class="flex space-x-4 space-x-reverse">
-                    <button type="button" id="backToWelcome" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
-                    <button type="button" id="nextToDelivery" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">המשך לפרטי אספקה</button>
+                    <button type="button" id="backToWelcome" class="w-1/2 btn btn-secondary py-3">חזרה</button>
+                    <button type="button" id="nextToDelivery" class="w-1/2 btn btn-primary py-3">המשך לפרטי אספקה</button>
                 </div>
             </section>
-
-            <section id="section-delivery" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+            
+            <!-- Delivery Details Section -->
+            <section id="section-delivery" class="glassmorphism !rounded-xl p-5 space-y-4 hidden">
                 <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
                     <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">3</div>
                     פרטי אספקה
                 </h2>
-                <div class="input-container">
-                    <select id="deliveryType" name="deliveryType" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" onchange="checkSelfPickup()">
+                
+                <div class="form-control">
+                    <select id="deliveryType" name="deliveryType" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" onchange="checkSelfPickup()">
                         <option value="" disabled selected>בחר סוג אספקה</option>
                         <option value="פריקה ידנית">פריקה ידנית 👐</option>
                         <option value="פריקת מנוף 10 מטר">פריקת מנוף 10 מטר 🏗️</option>
@@ -241,12 +722,14 @@
                     </select>
                     <label for="deliveryType" class="floating-label text-gray-500">סוג אספקה *</label>
                 </div>
-                <div class="input-container">
-                    <input type="text" id="deliveryDate" name="deliveryDate" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " readonly>
+                
+                <div class="form-control">
+                    <input type="text" id="deliveryDate" name="deliveryDate" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " readonly>
                     <label for="deliveryDate" class="floating-label text-gray-500">תאריך אספקה</label>
                 </div>
-                <div class="input-container">
-                    <select id="deliveryTime" name="deliveryTime" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
+                
+                <div class="form-control">
+                    <select id="deliveryTime" name="deliveryTime" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
                         <option value="" disabled selected>בחר שעת אספקה</option>
                         <option value="06:00">06:00</option>
                         <option value="06:30">06:30</option>
@@ -274,49 +757,57 @@
                     </select>
                     <label for="deliveryTime" class="floating-label text-gray-500">שעת אספקה</label>
                 </div>
-                <div class="input-container autocomplete-container">
-                    <input type="text" id="city" name="city" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                
+                <div class="form-control autocomplete-container">
+                    <input type="text" id="city" name="city" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
                     <label for="city" class="floating-label text-gray-500">עיר</label>
                     <div id="cityAutocomplete" class="autocomplete-items hidden"></div>
                 </div>
+                
                 <div class="flex space-x-4 space-x-reverse">
-                    <div class="input-container flex-1">
-                        <input type="text" id="street" name="street" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                    <div class="form-control flex-1">
+                        <input type="text" id="street" name="street" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
                         <label for="street" class="floating-label text-gray-500">רחוב</label>
                     </div>
-                    <div class="input-container w-1/3">
-                        <input type="text" id="streetNumber" name="streetNumber" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                    <div class="form-control w-1/3">
+                        <input type="text" id="streetNumber" name="streetNumber" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
                         <label for="streetNumber" class="floating-label text-gray-500">מספר רחוב</label>
                     </div>
                 </div>
-                <div class="input-container">
-                    <input type="text" id="contactPerson" name="contactPerson" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                
+                <div class="form-control">
+                    <input type="text" id="contactPerson" name="contactPerson" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
                     <label for="contactPerson" class="floating-label text-gray-500">איש קשר</label>
                 </div>
-                <div class="input-container">
-                    <input type="tel" id="contactPhone" name="contactPhone" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " pattern="[0-9]{10}">
+                
+                <div class="form-control">
+                    <input type="tel" id="contactPhone" name="contactPhone" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " pattern="[0-9]{10}">
                     <label for="contactPhone" class="floating-label text-gray-500">טלפון איש קשר</label>
                 </div>
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                
+                <div class="bg-blue-50 p-4 !rounded-xl border border-blue-100">
                     <p class="text-sm mb-2">תרצה לשלוח מיקום מדויק? נשמח! 👇</p>
-                    <button onclick="shareLocation()" class="flex items-center justify-center bg-green-500 text-white py-3 px-4 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer">
+                    <a href="https://wa.me/972508860896?text=המיקום+שלי+להזמנה:" class="flex items-center justify-center btn btn-success py-3 px-4">
                         <i class="ri-map-pin-line ri-lg ml-2"></i>
                         לחץ כאן לשיתוף מיקום בווצאפ
-                    </button>
+                    </a>
                 </div>
+                
                 <div class="flex space-x-4 space-x-reverse">
-                    <button type="button" id="backToCustomer" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
-                    <button type="button" id="nextToItems" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">המשך לפריטים</button>
+                    <button type="button" id="backToCustomer" class="w-1/2 btn btn-secondary py-3">חזרה</button>
+                    <button type="button" id="nextToItems" class="w-1/2 btn btn-primary py-3">המשך לפריטים</button>
                 </div>
             </section>
-
-            <section id="section-items" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+            
+            <!-- Items Section -->
+            <section id="section-items" class="glassmorphism !rounded-xl p-5 space-y-4 hidden">
                 <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
                     <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">4</div>
                     רשימת פריטים
                 </h2>
-                <div class="input-container">
-                    <select id="productCategory" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
+                
+                <div class="form-control">
+                    <select id="productCategory" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
                         <option value="all">כל הקטגוריות</option>
                         <option value="בלוקים">בלוקים</option>
                         <option value="מלט וגבס">מלט וגבס</option>
@@ -330,49 +821,54 @@
                     </select>
                     <label for="productCategory" class="floating-label text-gray-500">קטגוריית מוצר</label>
                 </div>
+                
                 <div id="items-container" class="space-y-4"></div>
-                <button type="button" id="addItem" class="w-full border border-dashed border-primary text-primary py-3 rounded-button hover:bg-blue-50 transition duration-300 cursor-pointer flex items-center justify-center">
+                
+                <button type="button" id="addItem" class="w-full border border-dashed border-primary text-primary py-3 !rounded-button hover:bg-blue-50 transition duration-300 cursor-pointer flex items-center justify-center">
                     <i class="ri-add-line ri-lg ml-2"></i>
                     הוסף פריט
                 </button>
+                
                 <div class="flex space-x-4 space-x-reverse mt-4">
-                    <button type="button" id="backToDelivery" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
-                    <button type="button" id="nextToNotes" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">המשך להערות</button>
+                    <button type="button" id="backToDelivery" class="w-1/2 btn btn-secondary py-3">חזרה</button>
+                    <button type="button" id="nextToNotes" class="w-1/2 btn btn-primary py-3">המשך להערות</button>
                 </div>
             </section>
-
-            <section id="section-notes" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+            
+            <!-- Notes Section -->
+            <section id="section-notes" class="glassmorphism !rounded-xl p-5 space-y-4 hidden">
                 <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
                     <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">5</div>
                     הערות וסיום
                 </h2>
-                <div class="input-container">
-                    <textarea id="notes" name="notes" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="הערות נוספות להזמנה..."></textarea>
+                
+                <div class="form-control">
+                    <textarea id="notes" name="notes" rows="4" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="הערות נוספות להזמנה..."></textarea>
                 </div>
-                <div class="input-container">
-                    <input type="file" id="attachment" name="attachment" accept="image/*,application/pdf" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <label for="attachment" class="floating-label text-gray-500">צרף תמונה/מסמך</label>
-                </div>
-                <div id="orderSummary" class="bg-blue-50 p-4 rounded-xl border border-blue-100 hidden">
+                
+                <div id="orderSummary" class="bg-blue-50 p-4 !rounded-xl border border-blue-100 hidden">
                     <h3 class="font-bold mb-2">סיכום הזמנה:</h3>
                     <div id="summaryContent" class="text-sm space-y-1"></div>
                 </div>
+                
                 <div class="flex space-x-4 space-x-reverse">
-                    <button type="button" id="saveDraft" class="w-1/2 bg-yellow-500 text-white py-3 rounded-button hover:bg-yellow-600 transition duration-300 cursor-pointer flex items-center justify-center">
+                    <button type="button" id="saveDraft" class="w-1/2 btn btn-warning py-3 flex items-center justify-center">
                         <i class="ri-save-line ri-lg ml-2"></i>
                         שמור טיוטה
                     </button>
-                    <button type="button" id="sendOrder" class="w-1/2 bg-green-500 text-white py-3 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer flex items-center justify-center">
+                    <button type="button" id="sendOrder" class="w-1/2 btn btn-success py-3 flex items-center justify-center">
                         <i class="ri-whatsapp-line ri-lg ml-2"></i>
                         שלח הזמנה
                     </button>
                 </div>
+                
                 <div class="flex space-x-4 space-x-reverse mt-2">
-                    <button type="button" id="backToItems" class="w-full bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
+                    <button type="button" id="backToItems" class="w-full btn btn-secondary py-3">חזרה</button>
                 </div>
             </section>
-
-            <section id="section-info" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+            
+            <!-- Info Section -->
+            <section id="section-info" class="glassmorphism !rounded-xl p-5 space-y-4 hidden">
                 <h2 class="text-lg font-bold text-primary mb-4">מידע על מחלקת הזמנות</h2>
                 <div class="space-y-4">
                     <div>
@@ -400,10 +896,11 @@
                         <p class="text-gray-600 mt-2">לרשימה המלאה, צרו קשר עם מחלקת ההזמנות בטלפון: 09-7602010</p>
                     </div>
                 </div>
-                <button type="button" onclick="showSection(0)" class="w-full bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">חזרה לראשי</button>
+                <button type="button" onclick="showSection(0)" class="w-full btn btn-primary py-3">חזרה לראשי</button>
             </section>
-
-            <section id="section-hours" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+            
+            <!-- Hours Section -->
+            <section id="section-hours" class="glassmorphism !rounded-xl p-5 space-y-4 hidden">
                 <h2 class="text-lg font-bold text-primary mb-4">שעות פעילות הסניפים</h2>
                 <div class="space-y-4">
                     <div class="branch-card">
@@ -412,80 +909,978 @@
                         <div class="branch-hours">שעות איסוף עצמי: <span>06:00-16:00</span></div>
                         <div class="branch-phone">טלפון: 09-7602010</div>
                         <div class="branch-address">כתובת: התלמיד 6, הוד השרון</div>
-                        <button onclick="navigateToBranch('התלמיד 6, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                        <button onclick="navigateToBranch('התלמיד 6, הוד השרון')" class="branch-button btn btn-primary py-2">
                             <i class="ri-map-pin-line"></i> ניווט לסניף
                         </button>
                     </div>
+                    
                     <div class="branch-card">
                         <div class="branch-title">סניף החרש 10, הוד השרון</div>
                         <div class="branch-hours">שעות פעילות: <span>ראשון-חמישי: 06:00-18:00 | שישי: 06:00-14:00</span></div>
                         <div class="branch-hours">שעות איסוף עצמי: <span>06:00-16:00</span></div>
                         <div class="branch-phone">טלפון: 09-7402575</div>
                         <div class="branch-address">כתובת: החרש 10, הוד השרון</div>
-                        <button onclick="navigateToBranch('החרש 10, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                        <button onclick="navigateToBranch('החרש 10, הוד השרון')" class="branch-button btn btn-primary py-2">
                             <i class="ri-map-pin-line"></i> ניווט לסניף
                         </button>
                     </div>
+                    
                     <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
                         <h3 class="font-bold mb-2">שעות משלוחים:</h3>
                         <p class="text-sm">ראשון-חמישי: 06:30-16:30</p>
                         <p class="text-sm">שישי: 06:30-13:00</p>
                     </div>
                 </div>
-                <button type="button" onclick="showSection(0)" class="w-full bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">חזרה לראשי</button>
+                <button type="button" onclick="showSection(0)" class="w-full btn btn-primary py-3">חזרה לראשי</button>
             </section>
-
-            <div id="successMessage" class="glassmorphism rounded-xl p-5 text-center hidden">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            
+            <!-- Success Message -->
+            <div id="successMessage" class="glassmorphism !rounded-xl p-5 text-center hidden">
+                <div class="w-16 h-16 bg-green-100 !rounded-full flex items-center justify-center mx-auto mb-4 success-icon">
                     <i class="ri-check-line ri-2x text-green-500"></i>
                 </div>
                 <h2 class="text-xl font-bold text-green-500 mb-2">ההזמנה נשלחה בהצלחה!</h2>
                 <p class="text-gray-600 mb-4">פרטי ההזמנה נשלחו למחלקת ההזמנות ויטופלו בהקדם.</p>
-                <button onclick="shareAdditionalNote()" class="block bg-green-500 text-white py-3 px-6 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer mb-4">
-                    שלח הודעה נוספת לנהג/מחלקת הזמנות
-                </button>
-                <button type="button" id="newOrder" class="bg-primary text-white py-3 px-6 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">הזמנה חדשה</button>
+                <button type="button" id="newOrder" class="btn btn-primary py-3 px-6">הזמנה חדשה</button>
+            </div>
+
+            <!-- Calendar Popup -->
+            <div id="calendarPopup" class="calendar-popup hidden">
+                <div class="calendar-content">
+                    <h3 class="text-lg font-bold mb-4">בחר תאריך אספקה</h3>
+                    <input type="date" id="calendarInput" class="w-full px-4 py-3 border border-gray-300 !rounded-button mb-4 calendar-input">
+                    <div class="flex space-x-4 space-x-reverse">
+                        <button type="button" onclick="selectDate()" class="w-1/2 btn btn-primary py-3">אישור</button>
+                        <button type="button" onclick="closeCalendar()" class="w-1/2 btn btn-secondary py-3">ביטול</button>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
-
-    <div class="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 flex justify-around py-2 z-50">
-        <a href="#" onclick="showSection(0)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+    
+    <!-- Tab Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 flex justify-around py-2 z-50 tab-bar">
+        <a href="#" onclick="showSection(0)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer tab-item active">
             <div class="w-6 h-6 flex items-center justify-center">
-                <i class="ri-home-line ri-lg text-primary bottom-nav-icon"></i>
+                <i class="ri-home-line ri-lg text-primary"></i>
             </div>
             <span class="text-xs mt-1 text-primary">ראשי</span>
         </a>
-        <a href="#" onclick="showSection(1)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+        <a href="#" onclick="showSection(1)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer tab-item">
             <div class="w-6 h-6 flex items-center justify-center">
-                <i class="ri-file-list-line ri-lg text-gray-400 bottom-nav-icon"></i>
+                <i class="ri-file-list-line ri-lg text-gray-400"></i>
             </div>
             <span class="text-xs mt-1 text-gray-400">הזמנות</span>
         </a>
-        <a href="#" onclick="showSection(5)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+        <a href="products.html" class="flex flex-col items-center justify-center w-1/4 cursor-pointer tab-item">
             <div class="w-6 h-6 flex items-center justify-center">
-                <i class="ri-shopping-cart-line ri-lg text-gray-400 bottom-nav-icon"></i>
+                <i class="ri-shopping-cart-line ri-lg text-gray-400"></i>
             </div>
             <span class="text-xs mt-1 text-gray-400">מוצרים</span>
         </a>
-        <a href="#" onclick="showSection(6)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+        <a href="hours.html" class="flex flex-col items-center justify-center w-1/4 cursor-pointer tab-item">
             <div class="w-6 h-6 flex items-center justify-center">
-                <i class="ri-time-line ri-lg text-gray-400 bottom-nav-icon"></i>
+                <i class="ri-time-line ri-lg text-gray-400"></i>
             </div>
             <span class="text-xs mt-1 text-gray-400">שעות פעילות</span>
         </a>
     </div>
-
+    
+    <!-- Loading Spinner -->
     <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-5 rounded-xl flex flex-col items-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
+        <div class="bg-white p-5 !rounded-xl flex flex-col items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3 loading-spinner"></div>
             <p class="text-gray-700">מעבד את ההזמנה...</p>
         </div>
     </div>
+    
+    <script>
+        // Sample data
+        const cities = ["ירושלים", "תל אביב", "חיפה", "ראשון לציון", "פתח תקווה", "אשדוד", "נתניה", "באר שבע", "חולון", "בני ברק", "רמת גן", "בת ים", "אשקלון", "רחובות", "הרצליה", "כפר סבא", "מודיעין", "רעננה", "לוד", "רמלה", "נצרת", "קרית אתא", "אילת", "קרית גת", "עפולה", "נהריה", "טבריה", "חדרה", "דימונה", "יבנה", "אריאל", "טירה", "קרית שמונה", "צפת", "מעלות", "אור יהודה", "יהוד", "קרית ביאליק", "קרית ים", "גבעתיים", "ראש העין", "עכו", "אופקים", "נס ציונה", "רמת השרון", "טייבה", "שפרעם", "קרית מוצקין", "אלעד", "מגדל העמק", "בית שמש", "יקנעם", "נתיבות", "ערד", "שדרות", "כרמיאל", "גדרה", "זכרון יעקב", "טירת כרמל", "מעלה אדומים", "קרית מלאכי", "אור עקיבא", "בית שאן", "רהט", "מטולה"];
+        const products = [
+            { name: "רוקבונד פח", category: "חומרים" },
+            { name: "בלוק,7 ס\"מ", category: "בלוקים" },
+            { name: "בלוק,10 ס\"מ", category: "בלוקים" },
+            { name: "בלוק,15 ס\"מ", category: "בלוקים" },
+            { name: "בלוק,20 ס\"מ", category: "בלוקים" },
+            { name: "בלוק,22 ס\"מ", category: "בלוקים" },
+            { name: "בלוק,25 ס\"מ", category: "בלוקים" },
+            { name: "מלט,אפור 25 ק\"ג", category: "מלט וגבס" },
+            { name: "מלט,לבן 25 ק\"ג", category: "מלט וגבס" },
+            { name: "גבס,שפכטל 25 ק\"ג", category: "מלט וגבס" },
+            { name: "טיח גבס,25 ק\"ג שק", category: "מלט וגבס" },
+            { name: "ברזל בניין,8 מ\"מ, 3 מטר", category: "ברזל" },
+            { name: "ברזל בניין,10 מ\"מ, 3 מטר", category: "ברזל" },
+            { name: "ברזל בניין,12 מ\"מ, 3 מטר", category: "ברזל" },
+            { name: "ברזל בניין,14 מ\"מ, 3 מטר", category: "ברזל" },
+            { name: "ברזל בניין,16 מ\"מ", category: "ברזל" },
+            { name: "רשת ברזל 6 מ\"מ,20x20 3X2", category: "ברזל" },
+            { name: "רשת ברזל 8 מ\"מ,20x20 3X2", category: "ברזל" },
+            { name: "רשת ברזל,10x10", category: "ברזל" },
+            { name: "לוח גבס,לבן 2.0", category: "גבס" },
+            { name: "לוח גבס,לבן 2.6", category: "גבס" },
+            { name: "לוח גבס,לבן 3.0", category: "גבס" },
+            { name: "לוח גבס,ירוק 2.0", category: "גבס" },
+            { name: "לוח גבס,ירוק 2.6", category: "גבס" },
+            { name: "לוח גבס,ירוק 3.0", category: "גבס" },
+            { name: "לוח גבס,ורוד 2.6", category: "גבס" },
+            { name: "לוח גבס,כחול 2.6", category: "גבס" },
+            { name: "לוח,OSB", category: "גבס" },
+            { name: "לוח,MDF", category: "גבס" },
+            { name: "לוח סנדוויץ',18 מ\"מ", category: "גבס" },
+            { name: "קרמיקה,לרצפה", category: "קרמיקה" },
+            { name: "קרמיקה,לקיר", category: "קרמיקה" },
+            { name: "פרקט,למינציה", category: "קרמיקה" },
+            { name: "פרקט,עץ", category: "קרמיקה" },
+            { name: "שיש,גרניט פורצלן", category: "קרמיקה" },
+            { name: "אריחי טרצו", category: "קרמיקה" },
+            { name: "אבן,טבעית", category: "קרמיקה" },
+            { name: "אבן,שיש", category: "קרמיקה" },
+            { name: "אבן,גרניט", category: "קרמיקה" },
+            { name: "צבע,לבן נירלט 18 ליטר", category: "צבע" },
+            { name: "צבע,לבן טמבור 18 ליטר", category: "צבע" },
+            { name: "פריימר S,18 ליטר", category: "צבע" },
+            { name: "צבע,לקיר פנימי", category: "צבע" },
+            { name: "צבע,לעץ", category: "צבע" },
+            { name: "צבע,למתכת", category: "צבע" },
+            { name: "צינור פלסטיק,1/2 אינץ'", category: "צנרת" },
+            { name: "צינור פלסטיק,3/4 אינץ'", category: "צנרת" },
+            { name: "צינור פלסטיק,1 אינץ'", category: "צנרת" },
+            { name: "צינור פלסטיק,2 אינץ'", category: "צנרת" },
+            { name: "צינור ביוב,4 אינץ'", category: "צנרת" },
+            { name: "צינור ביוב,6 אינץ'", category: "צנרת" },
+            { name: "דבק,603 קרמיקה 25 ק\"ג", category: "דבקים" },
+            { name: "דבק,פורצלן 25 ק\"ג", category: "דבקים" },
+            { name: "דבק,שיש 25 ק\"ג", category: "דבקים" },
+            { name: "רובה,לקרמיקה", category: "דבקים" },
+            { name: "רובה,לפורצלן", category: "דבקים" },
+            { name: "רובה,לשיש", category: "דבקים" },
+            { name: "חול שק", category: "חומרים" },
+            { name: "חול שק גדול", category: "חומרים" },
+            { name: "סומסום שק", category: "חומרים" },
+            { name: "סומסום שק גדול", category: "חומרים" },
+            { name: "טיט שק", category: "חומרים" },
+            { name: "טיט שק גדול", category: "חומרים" },
+            { name: "שליט מוכן", category: "חומרים" },
+            { name: "חצץ שק", category: "חומרים" },
+            { name: "חצץ שק גדול", category: "חומרים" },
+            { name: "בלוק,וופלה 3 ס\"מ", category: "בלוקים" },
+            { name: "בלוק,וופלה 4 ס\"מ", category: "בלוקים" }
+        ];
+        
+        // Web App URL
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynk-CmliXRYhiIJ4cSkCNA7PyY8XOynpp_CSJ8lacM2gPk5KDTV2dWmCCrppyXvX1N3w/exec';
+        
+        // Fuse.js for fuzzy search
+        const fuse = new Fuse(products, {
+            keys: ['name'],
+            threshold: 0.3,
+            includeScore: true
+        });
 
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="script.js"></script>
+        // Block extension events
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'extensionEvent') {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }, true);
+
+        // Environment check
+        function checkEnvironment() {
+            // Placeholder for environment interference check
+        }
+        
+        // Server communication
+        // בדוגמה הקודמת שלך, החלף את ה-fetch ל-POST
+async function sendToServer(action, data) {
+  try {
+    const response = await fetch(WEB_APP_URL, {
+      method: 'POST', // ודא שזה POST ולא GET
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: action,
+        ...data
+      })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('שגיאה בתקשורת עם השרת:', error);
+    return { 
+      success: false, 
+      error: 'שגיאה בתקשורת עם השרת',
+      details: error.message
+    };
+  }
+}
+        
+        // Submit order
+        let currentOrderData = null;
+        async function submitOrder(orderData) {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            loadingSpinner.classList.remove('hidden');
+            
+            try {
+                console.log('Sending order data to server:', orderData);
+                const response = await sendToServer('submitOrder', {
+                    customerName: orderData.customerName,
+                    customerPhone: orderData.customerPhone,
+                    deliveryType: orderData.deliveryType,
+                    deliveryDate: orderData.deliveryDate || '',
+                    deliveryTime: orderData.deliveryTime || '',
+                    city: orderData.city || '',
+                    street: orderData.street || '',
+                    streetNumber: orderData.streetNumber || '',
+                    contactPerson: orderData.contactPerson || '',
+                    contactPhone: orderData.contactPhone || '',
+                    items: orderData.items,
+                    notes: orderData.notes || ''
+                });
+                
+                if (!response.success) {
+                    throw new Error(response.error || 'שגיאה בעיבוד ההזמנה');
+                }
+                
+                console.log('Server response:', response);
+                
+                // Show success message
+                document.getElementById('orderForm').classList.add('hidden');
+                document.getElementById('successMessage').classList.remove('hidden');
+                
+                // Send WhatsApp message
+                try {
+                    sendToWhatsApp(orderData, response.data?.orderId || 'לא זמין');
+                } catch (whatsappError) {
+                    console.error('שגיאה בשליחת הודעת ווצאפ:', whatsappError);
+                    alert('ההזמנה נשלחה בהצלחה, אך לא ניתן היה לפתוח את הודעת הווצאפ. אנא שלחו את פרטי ההזמנה ידנית למספר: +972508860896');
+                }
+                
+                // Clear draft
+                localStorage.removeItem('orderDraft');
+            } catch (error) {
+                console.error('שגיאה בשליחת ההזמנה:', error);
+                showError(document.getElementById('sendOrder'), error.message);
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+        
+        // Send to WhatsApp
+        function sendToWhatsApp(orderData, orderId) {
+            try {
+                console.log('Preparing WhatsApp message with order data:', orderData);
+                const items = JSON.parse(orderData.items);
+                let itemsList = '';
+                if (items.length === 0) {
+                    itemsList = 'אין פריטים';
+                } else {
+                    itemsList = items.map(item => `- ${item.product} x${item.quantity}`).join('\n');
+                }
+                
+                const address = `${orderData.street || ''}${orderData.streetNumber ? ` מס' ${orderData.streetNumber}` : ''}${orderData.city ? `, ${orderData.city}` : ''}`.trim() || 'לא צוין';
+                
+                const message = `📦 הזמנה חדשה מח.סבן (מס' הזמנה: ${orderId})
+**שם לקוח**: ${orderData.customerName || 'לא צוין'}
+**טלפון**: ${orderData.customerPhone || 'לא צוין'}
+**סוג אספקה**: ${orderData.deliveryType || 'לא צוין'}
+**תאריך אספקה**: ${orderData.deliveryDate || 'לא צוין'}
+**שעת אספקה**: ${orderData.deliveryTime || 'לא צוין'}
+**כתובת**: ${address}
+**איש קשר**: ${orderData.contactPerson || 'לא צוין'}${orderData.contactPhone ? ` (${orderData.contactPhone})` : ''}
+**פריטים**:
+${itemsList}
+**הערות**: ${orderData.notes || 'אין הערות'}`;
+                
+                console.log('WhatsApp message:', message);
+                const encodedMessage = encodeURIComponent(message);
+                const whatsappUrl = `https://wa.me/972508860896?text=${encodedMessage}`;
+                console.log('WhatsApp URL:', whatsappUrl);
+                
+                const whatsappWindow = window.open(whatsappUrl, '_blank');
+                if (!whatsappWindow) {
+                    throw new Error('לא ניתן לפתוח את חלון הווצאפ. אנא בדקו את הגדרות הדפדפן.');
+                }
+            } catch (error) {
+                console.error('שגיאה בהכנת הודעת ווצאפ:', error);
+                throw error;
+            }
+        }
+        
+        // Collect form data
+        function collectFormData() {
+            const formData = {
+                customerName: document.getElementById('customerName').value.trim(),
+                customerPhone: document.getElementById('customerPhone').value.trim(),
+                deliveryType: document.getElementById('deliveryType').value,
+                deliveryDate: document.getElementById('deliveryDate').value,
+                deliveryTime: document.getElementById('deliveryTime').value,
+                city: document.getElementById('city').value.trim(),
+                street: document.getElementById('street').value.trim(),
+                streetNumber: document.getElementById('streetNumber').value.trim(),
+                contactPerson: document.getElementById('contactPerson').value.trim(),
+                contactPhone: document.getElementById('contactPhone').value.trim(),
+                notes: document.getElementById('notes').value.trim(),
+                items: JSON.stringify(getOrderItems())
+            };
+            console.log('Collected form data:', formData);
+            return formData;
+        }
+        
+        // Get order items
+        function getOrderItems() {
+            const items = [];
+            const itemsContainer = document.getElementById('items-container');
+            
+            for (let i = 0; i < itemsContainer.children.length; i++) {
+                const itemId = itemsContainer.children[i].id;
+                const product = document.getElementById(`product-${itemId}`).value.trim();
+                const quantity = document.getElementById(`quantity-${itemId}`).value;
+                if (product && quantity) {
+                    items.push({
+                        product: product,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            return items;
+        }
+        
+        // Form validation
+        function validateForm() {
+            let isValid = true;
+            
+            const customerName = document.getElementById('customerName');
+            if (!customerName.value.trim()) {
+                showError(customerName, 'שם לקוח הוא שדה חובה');
+                isValid = false;
+            }
+            
+            const customerPhone = document.getElementById('customerPhone');
+            if (!customerPhone.value.trim()) {
+                showError(customerPhone, 'מספר טלפון הוא שדה חובה');
+                isValid = false;
+            } else if (!customerPhone.checkValidity()) {
+                showError(customerPhone, 'מספר טלפון לא תקין');
+                isValid = false;
+            }
+            
+            const deliveryType = document.getElementById('deliveryType');
+            if (!deliveryType.value) {
+                showError(deliveryType, 'יש לבחור סוג אספקה');
+                isValid = false;
+            }
+            
+            const itemsContainer = document.getElementById('items-container');
+            if (itemsContainer.children.length === 0) {
+                showError(document.getElementById('addItem'), 'יש להוסיף לפחות פריט אחד');
+                isValid = false;
+            } else {
+                for (let i = 0; i < itemsContainer.children.length; i++) {
+                    const itemId = itemsContainer.children[i].id;
+                    const product = document.getElementById(`product-${itemId}`);
+                    if (!product.value.trim()) {
+                        showError(product, 'יש לבחור מוצר');
+                        isValid = false;
+                    }
+                    const quantity = document.getElementById(`quantity-${itemId}`);
+                    if (!quantity.value || quantity.value < 1) {
+                        showError(quantity, 'יש לציין כמות תקינה');
+                        isValid = false;
+                    }
+                }
+            }
+            
+            // Soft validation for optional fields
+            if (!document.getElementById('deliveryDate').value) {
+                showError(document.getElementById('deliveryDate'), 'מומלץ לבחור תאריך אספקה', true);
+            }
+            
+            if (!document.getElementById('city').value.trim()) {
+                showError(document.getElementById('city'), 'מומלץ לציין עיר', true);
+            }
+            
+            return isValid;
+        }
+        
+        // Navigation and section handling
+        const sections = ['section-welcome', 'section-customer', 'section-delivery', 'section-items', 'section-notes', 'section-info', 'section-hours'];
+        let currentSection = 0;
+        const progressBar = document.getElementById('progress-bar');
+        
+        function updateProgressBar() {
+            if (currentSection <= 4) {
+                progressBar.style.width = `${(currentSection + 1) * 20}%`;
+            } else {
+                progressBar.style.width = `20%`;
+            }
+        }
+        
+        function showSection(index) {
+            sections.forEach((sectionId, i) => {
+                const section = document.getElementById(sectionId);
+                if (i === index) {
+                    section.classList.remove('hidden');
+                    section.classList.add('fade-in');
+                } else {
+                    section.classList.add('hidden');
+                    section.classList.remove('fade-in');
+                }
+            });
+            
+            // Update tab bar active state
+            document.querySelectorAll('.tab-item').forEach((tab, tabIndex) => {
+                if (tabIndex === 0 && index === 0) {
+                    tab.classList.add('active');
+                    tab.querySelector('i').classList.add('text-primary');
+                    tab.querySelector('i').classList.remove('text-gray-400');
+                    tab.querySelector('span').classList.add('text-primary');
+                    tab.querySelector('span').classList.remove('text-gray-400');
+                } else {
+                    tab.classList.remove('active');
+                    tab.querySelector('i').classList.remove('text-primary');
+                    tab.querySelector('i').classList.add('text-gray-400');
+                    tab.querySelector('span').classList.remove('text-primary');
+                    tab.querySelector('span').classList.add('text-gray-400');
+                }
+            });
+            
+            currentSection = index;
+            updateProgressBar();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function validateCustomerSection() {
+            const customerName = document.getElementById('customerName');
+            const customerPhone = document.getElementById('customerPhone');
+            
+            if (!customerName.value.trim()) {
+                customerName.focus();
+                showError(customerName, 'שם לקוח הוא שדה חובה');
+                return false;
+            }
+            
+            if (!customerPhone.value.trim()) {
+                customerPhone.focus();
+                showError(customerPhone, 'מספר טלפון הוא שדה חובה');
+                return false;
+            }
+            
+            if (!customerPhone.checkValidity()) {
+                customerPhone.focus();
+                showError(customerPhone, 'מספר טלפון לא תקין');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validateDeliverySection() {
+            const deliveryType = document.getElementById('deliveryType');
+            
+            if (deliveryType.value === "") {
+                deliveryType.focus();
+                showError(deliveryType, 'יש לבחור סוג אספקה');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validateItemsSection() {
+            const itemsContainer = document.getElementById('items-container');
+            if (itemsContainer.children.length === 0) {
+                showError(document.getElementById('addItem'), 'יש להוסיף לפחות פריט אחד');
+                return false;
+            }
+            
+            for (let i = 0; i < itemsContainer.children.length; i++) {
+                const itemId = itemsContainer.children[i].id;
+                const product = document.getElementById(`product-${itemId}`);
+                if (!product.value.trim()) {
+                    showError(product, 'יש לבחור מוצר');
+                    return false;
+                }
+                const quantity = document.getElementById(`quantity-${itemId}`);
+                if (!quantity.value || quantity.value < 1) {
+                    showError(quantity, 'יש לציין כמות תקינה');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        function showError(element, message, isWarning = false) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = `text-${isWarning ? 'yellow' : 'red'}-500 text-sm mt-1 fade-in`;
+            errorDiv.textContent = message;
+            
+            const existingError = element.parentNode.querySelector('.text-red-500, .text-yellow-500');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            element.parentNode.appendChild(errorDiv);
+            element.classList.add(`border-${isWarning ? 'yellow' : 'red'}-500`);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+                element.classList.remove(`border-${isWarning ? 'yellow' : 'red'}-500`);
+            }, 3000);
+        }
+        
+        // City autocomplete
+        const cityInput = document.getElementById('city');
+        const cityAutocomplete = document.getElementById('cityAutocomplete');
+        
+        cityInput.addEventListener('input', function() {
+            const value = this.value.trim();
+            cityAutocomplete.innerHTML = '';
+            
+            if (value.length < 2) {
+                cityAutocomplete.classList.add('hidden');
+                return;
+            }
+            
+            const filteredCities = cities.filter(city => 
+                city.toLowerCase().includes(value.toLowerCase())
+            );
+            
+            if (filteredCities.length > 0) {
+                cityAutocomplete.classList.remove('hidden');
+                filteredCities.forEach(city => {
+                    const div = document.createElement('div');
+                    div.textContent = city;
+                    div.addEventListener('click', function() {
+                        cityInput.value = city;
+                        cityAutocomplete.classList.add('hidden');
+                    });
+                    cityAutocomplete.appendChild(div);
+                });
+            } else {
+                cityAutocomplete.classList.add('hidden');
+            }
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!cityInput.contains(e.target) && !cityAutocomplete.contains(e.target)) {
+                cityAutocomplete.classList.add('hidden');
+            }
+        });
+        
+        // Calendar popup
+        const deliveryDateInput = document.getElementById('deliveryDate');
+        const calendarPopup = document.getElementById('calendarPopup');
+        const calendarInput = document.getElementById('calendarInput');
+        
+        deliveryDateInput.addEventListener('click', function() {
+            calendarPopup.classList.remove('hidden');
+            calendarInput.value = deliveryDateInput.value || getTodayDate();
+            setCalendarConstraints();
+        });
+        
+        function setCalendarConstraints() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            calendarInput.min = getTodayDate();
+            
+            calendarInput.addEventListener('input', function() {
+                const selectedDate = new Date(this.value);
+                if (selectedDate.getDay() === 6) { // Saturday
+                    this.value = '';
+                    alert('אספקה לא זמינה בשבת. אנא בחר תאריך אחר.');
+                }
+            }, { once: true });
+        }
+        
+        function getTodayDate() {
+            const today = new Date();
+            return today.toISOString().split('T')[0];
+        }
+        
+        function selectDate() {
+            if (calendarInput.value) {
+                deliveryDateInput.value = calendarInput.value;
+                closeCalendar();
+            } else {
+                showError(calendarInput, 'יש לבחור תאריך');
+            }
+        }
+        
+        function closeCalendar() {
+            calendarPopup.classList.add('hidden');
+        }
+        
+        // Add item functionality
+        let itemCounter = 0;
+        
+        function addItemRow() {
+            const itemsContainer = document.getElementById('items-container');
+            const itemId = `item-${itemCounter++}`;
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.id = itemId;
+            itemDiv.className = 'item-card fade-in';
+            
+            const productAutocompleteId = `product-autocomplete-${itemId}`;
+            
+            itemDiv.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-medium">פריט #${itemCounter}</h4>
+                    <button type="button" class="text-red-500 hover:text-red-700 transition duration-300" onclick="removeItem('${itemId}')">
+                        <div class="w-6 h-6 flex items-center justify-center">
+                            <i class="ri-delete-bin-line"></i>
+                        </div>
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <div class="form-control autocomplete-container">
+                        <input type="text" id="product-${itemId}" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                        <label for="product-${itemId}" class="floating-label text-gray-500">מוצר *</label>
+                        <div id="${productAutocompleteId}" class="autocomplete-items hidden"></div>
+                    </div>
+                    <div class="form-control">
+                        <input type="number" id="quantity-${itemId}" class="w-full px-4 py-3 border border-gray-300 !rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " value="1" min="1">
+                        <label for="quantity-${itemId}" class="floating-label text-gray-500">כמות *</label>
+                    </div>
+                </div>
+            `;
+            
+            itemsContainer.appendChild(itemDiv);
+            
+            const productInput = document.getElementById(`product-${itemId}`);
+            const productAutocomplete = document.getElementById(productAutocompleteId);
+            const categorySelect = document.getElementById('productCategory');
+            
+            productInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                productAutocomplete.innerHTML = '';
+                
+                if (value.length < 2) {
+                    productAutocomplete.classList.add('hidden');
+                    return;
+                }
+                
+                const category = categorySelect.value;
+                let filteredProducts = products;
+                
+                if (category !== 'all') {
+                    filteredProducts = products.filter(product => product.category === category);
+                }
+                
+                const fuseResults = fuse.search(value, { limit: 10 });
+                const suggestions = fuseResults
+                    .filter(result => filteredProducts.some(p => p.name === result.item.name))
+                    .map(result => result.item.name);
+                
+                if (suggestions.length > 0) {
+                    productAutocomplete.classList.remove('hidden');
+                    suggestions.forEach(product => {
+                        const div = document.createElement('div');
+                        div.textContent = product;
+                        div.addEventListener('click', function() {
+                            productInput.value = product;
+                            productAutocomplete.classList.add('hidden');
+                        });
+                        productAutocomplete.appendChild(div);
+                    });
+                } else {
+                    productAutocomplete.classList.add('hidden');
+                }
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!productInput.contains(e.target) && !productAutocomplete.contains(e.target)) {
+                    productAutocomplete.classList.add('hidden');
+                }
+            });
+            
+            productInput.focus();
+        }
+        
+        window.removeItem = function(itemId) {
+            const item = document.getElementById(itemId);
+            item.classList.add('animate-fade-out');
+            setTimeout(() => {
+                item.remove();
+                updateOrderSummary();
+            }, 300);
+        };
+        
+        // Order summary
+        function updateOrderSummary() {
+            const orderData = collectFormData();
+            const summaryContent = document.getElementById('summaryContent');
+            const orderSummary = document.getElementById('orderSummary');
+            const items = JSON.parse(orderData.items);
+            
+            let summaryHtml = `
+                <p><strong>שם לקוח:</strong> ${orderData.customerName || 'לא צוין'}</p>
+                <p><strong>טלפון:</strong> ${orderData.customerPhone || 'לא צוין'}</p>
+                <p><strong>סוג אספקה:</strong> ${orderData.deliveryType || 'לא צוין'}</p>
+                <p><strong>תאריך אספקה:</strong> ${orderData.deliveryDate || 'לא צוין'}</p>
+                <p><strong>שעת אספקה:</strong> ${orderData.deliveryTime || 'לא צוין'}</p>
+                <p><strong>כתובת:</strong> ${orderData.street || ''}${orderData.streetNumber ? ` מס' ${orderData.streetNumber}` : ''}${orderData.city ? `, ${orderData.city}` : '' || 'לא צוין'}</p>
+                <p><strong>איש קשר:</strong> ${orderData.contactPerson || 'לא צוין'}${orderData.contactPhone ? ` (${orderData.contactPhone})` : ''}</p>
+                <p><strong>פריטים:</strong></p>
+                <ul class="list-disc list-inside">
+                    ${items.length > 0 ? items.map(item => `<li>${item.product} x${item.quantity}</li>`).join('') : '<li>אין פריטים</li>'}
+                </ul>
+                <p><strong>הערות:</strong> ${orderData.notes || 'אין הערות'}</p>
+            `;
+            
+            summaryContent.innerHTML = summaryHtml;
+            orderSummary.classList.remove('hidden');
+        }
+        
+        // Confirmation modal
+        function showConfirmationModal() {
+            if (!validateForm()) return;
+            
+            const orderData = collectFormData();
+            const items = JSON.parse(orderData.items);
+            const confirmationSummary = document.getElementById('confirmationSummary');
+            
+            let summaryHtml = `
+                <p><strong>שם לקוח:</strong> ${orderData.customerName}</p>
+                <p><strong>טלפון:</strong> ${orderData.customerPhone}</p>
+                <p><strong>סוג אספקה:</strong> ${orderData.deliveryType}</p>
+                <p><strong>תאריך אספקה:</strong> ${orderData.deliveryDate || 'לא צוין'}</p>
+                <p><strong>שעת אספקה:</strong> ${orderData.deliveryTime || 'לא צוין'}</p>
+                <p><strong>כתובת:</strong> ${orderData.street || ''}${orderData.streetNumber ? ` מס' ${orderData.streetNumber}` : ''}${orderData.city ? `, ${orderData.city}` : '' || 'לא צוין'}</p>
+                <p><strong>פריטים:</strong></p>
+                <ul class="list-disc list-inside">
+                    ${items.length > 0 ? items.map(item => `<li>${item.product} x${item.quantity}</li>`).join('') : '<li>אין פריטים</li>'}
+                </ul>
+            `;
+            
+            confirmationSummary.innerHTML = summaryHtml;
+            document.getElementById('confirmationModal').classList.remove('hidden');
+            currentOrderData = orderData;
+        }
+        
+        function closeConfirmationModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            currentOrderData = null;
+        }
+        
+        function confirmOrder() {
+            if (currentOrderData) {
+                submitOrder(currentOrderData);
+                closeConfirmationModal();
+            }
+        }
+        
+        // Save and load draft
+        function saveDraft() {
+            const orderData = collectFormData();
+            localStorage.setItem('orderDraft', JSON.stringify(orderData));
+            showError(document.getElementById('saveDraft'), 'הטיוטה נשמרה בהצלחה', true);
+        }
+        
+        function loadDraft() {
+            const draft = localStorage.getItem('orderDraft');
+            if (draft) {
+                const orderData = JSON.parse(draft);
+                document.getElementById('customerName').value = orderData.customerName || '';
+                document.getElementById('customerPhone').value = orderData.customerPhone || '';
+                document.getElementById('deliveryType').value = orderData.deliveryType || '';
+                document.getElementById('deliveryDate').value = orderData.deliveryDate || '';
+                document.getElementById('deliveryTime').value = orderData.deliveryTime || '';
+                document.getElementById('city').value = orderData.city || '';
+                document.getElementById('street').value = orderData.street || '';
+                document.getElementById('streetNumber').value = orderData.streetNumber || '';
+                document.getElementById('contactPerson').value = orderData.contactPerson || '';
+                document.getElementById('contactPhone').value = orderData.contactPhone || '';
+                document.getElementById('notes').value = orderData.notes || '';
+                
+                // Load items
+                const items = JSON.parse(orderData.items || '[]');
+                items.forEach(item => {
+                    addItemRow();
+                    const lastItemId = `item-${itemCounter-1}`;
+                    document.getElementById(`product-${lastItemId}`).value = item.product;
+                    document.getElementById(`quantity-${lastItemId}`).value = item.quantity;
+                });
+                
+                showError(document.getElementById('saveDraft'), 'טיוטה נטענה בהצלחה', true);
+            }
+        }
+        
+        // Welcome popup functions
+        function closeWelcomePopup() {
+            document.getElementById('welcomePopup').classList.add('hidden');
+            setTimeout(() => {
+                document.getElementById('welcomePopup').style.display = 'none';
+            }, 300);
+        }
+        
+        function closeCrmPopup() {
+            document.getElementById('crmPopup').classList.remove('show');
+        }
+        
+        // Color customization functions
+        function openColorPopup() {
+            document.getElementById('colorPopup').classList.add('active');
+        }
+        
+        function closeColorPopup() {
+            document.getElementById('colorPopup').classList.remove('active');
+        }
+        
+        function selectColor(element, colorName) {
+            // Remove selected class from all color options
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            element.classList.add('selected');
+            
+            // Store selected color (you can use this later when submitting the order)
+            document.getElementById('colorPopup').setAttribute('data-selected-color', colorName);
+        }
+        
+        function submitColorSelection() {
+            const selectedColor = document.getElementById('colorPopup').getAttribute('data-selected-color') || 'לבן';
+            const selectedBranch = document.getElementById('colorBranch').value;
+            
+            // Add a note to the order about the color customization
+            const notes = document.getElementById('notes');
+            notes.value = `${notes.value ? notes.value + '\n' : ''}גוון צבע: ${selectedColor} | איסוף מסניף: ${selectedBranch}`;
+            
+            closeColorPopup();
+            
+            // Show confirmation message
+            showError(document.getElementById('addItem'), `גוון הצבע ${selectedColor} נבחר בהצלחה! ההזמנה תהיה מוכנה בסניף ${selectedBranch}`, true);
+        }
+        
+        // Self pickup hours functions
+        function checkSelfPickup() {
+            const deliveryType = document.getElementById('deliveryType').value;
+            if (deliveryType === 'איסוף עצמי') {
+                document.getElementById('pickupHoursPopup').classList.add('active');
+            }
+        }
+        
+        function closePickupHoursPopup() {
+            document.getElementById('pickupHoursPopup').classList.remove('active');
+        }
+        
+        function navigateToBranch(branchName) {
+            let address = '';
+            if (branchName === 'התלמיד 6, הוד השרון') {
+                address = 'התלמיד 6, הוד השרון';
+            } else if (branchName === 'החרש 10, הוד השרון') {
+                address = 'החרש 10, הוד השרון';
+            }
+            
+            if (address) {
+                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+                window.open(mapsUrl, '_blank');
+            }
+        }
+        
+        // Update welcome message with customer name
+        function updateWelcomeMessage() {
+            const customerName = document.getElementById('customerName').value.trim();
+            const welcomeMessage = document.getElementById('personalWelcome');
+            
+            if (customerName) {
+                welcomeMessage.textContent = `שלום ${customerName}! אנא מלאו את פרטי ההזמנה`;
+            } else {
+                welcomeMessage.textContent = 'ברוכים הבאים! אנא מלאו את פרטי ההזמנה';
+            }
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show welcome popup on first visit
+            const firstVisit = localStorage.getItem('firstVisit');
+            if (!firstVisit) {
+                document.getElementById('welcomePopup').style.display = 'flex';
+                localStorage.setItem('firstVisit', 'true');
+            } else {
+                document.getElementById('welcomePopup').style.display = 'none';
+            }
+            
+            // Show CRM popup after 5 seconds
+            setTimeout(() => {
+                document.getElementById('crmPopup').classList.add('show');
+            }, 5000);
+            
+            // Navigation buttons
+            document.getElementById('nextToCustomer').addEventListener('click', function() {
+                showSection(1);
+            });
+            
+            document.getElementById('backToWelcome').addEventListener('click', function() {
+                showSection(0);
+            });
+            
+            document.getElementById('nextToDelivery').addEventListener('click', function() {
+                if (validateCustomerSection()) {
+                    showSection(2);
+                }
+            });
+            
+            document.getElementById('backToCustomer').addEventListener('click', function() {
+                showSection(1);
+            });
+            
+            document.getElementById('nextToItems').addEventListener('click', function() {
+                if (validateDeliverySection()) {
+                    showSection(3);
+                }
+            });
+            
+            document.getElementById('backToDelivery').addEventListener('click', function() {
+                showSection(2);
+            });
+            
+            document.getElementById('nextToNotes').addEventListener('click', function() {
+                if (validateItemsSection()) {
+                    showSection(4);
+                    updateOrderSummary();
+                }
+            });
+            
+            document.getElementById('backToItems').addEventListener('click', function() {
+                showSection(3);
+            });
+            
+            // Add item button
+            document.getElementById('addItem').addEventListener('click', addItemRow);
+            
+            // Save draft button
+            document.getElementById('saveDraft').addEventListener('click', saveDraft);
+            
+            // Send order button
+            document.getElementById('sendOrder').addEventListener('click', showConfirmationModal);
+            
+            // New order button
+            document.getElementById('newOrder').addEventListener('click', function() {
+                document.getElementById('orderForm').reset();
+                document.getElementById('items-container').innerHTML = '';
+                document.getElementById('orderForm').classList.remove('hidden');
+                document.getElementById('successMessage').classList.add('hidden');
+                document.getElementById('orderSummary').classList.add('hidden');
+                showSection(0);
+                itemCounter = 0;
+            });
+            
+            // Load draft if exists
+            loadDraft();
+            
+            // Set today's date as default
+            document.getElementById('deliveryDate').value = getTodayDate();
+            
+            // Update welcome message when customer name changes
+            document.getElementById('customerName').addEventListener('input', updateWelcomeMessage);
+        });
+    </script>
 </body>
 </html>
