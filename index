@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>טופס הזמנה חדשה - ח.סבן חומרי בניין</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#93c5fd'
+                    },
+                    borderRadius: {
+                        'button': '8px'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-pattern min-h-screen font-sans text-gray-800">
+    <div id="welcomePopup" class="popup-overlay active">
+        <div class="popup-content">
+            <span class="close-button" onclick="closeWelcomePopup()">×</span>
+            <div class="welcome-icon"><i class="ri-building-line"></i></div>
+            <div class="welcome-title">ברוכים הבאים למחלקת ההזמנות!</div>
+            <div class="welcome-message">
+                אנו בח.סבן חומרי בניין שמחים לראותכם כאן.<br>
+                מערכת ההזמנות החדשה שלנו תאפשר לכם לבצע הזמנות בקלות ובמהירות.
+            </div>
+            <button onclick="closeWelcomePopup()" class="w-full bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">
+                התחל הזמנה
+            </button>
+        </div>
+    </div>
+
+    <div id="crmPopup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-button" onclick="closeCrmPopup()">×</span>
+            <div class="crm-header">
+                <span>ח.סבן - מחלקת הזמנות</span>
+            </div>
+            <div class="crm-body">
+                <strong>שירות מהיר ואמין!</strong><br>
+                הזמנתך תתקבל תוך דקות ותטופל במהירות על ידי צוותנו המקצועי.
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmationModal" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-button" onclick="closeConfirmationModal()">×</span>
+            <h3 class="text-lg font-bold text-primary mb-4">אישור שליחת הזמנה</h3>
+            <p class="text-gray-600 mb-4">בדוק את פרטי ההזמנה לפני השליחה.</p>
+            <div id="confirmationSummary" class="text-sm text-gray-600 mb-4"></div>
+            <div class="flex space-x-4 space-x-reverse">
+                <button onclick="confirmOrder()" class="w-1/2 bg-green-500 text-white py-3 rounded-button hover:bg-green-600">שלח</button>
+                <button onclick="closeConfirmationModal()" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300">בטל</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="colorPopup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-button" onclick="closeColorPopup()">×</span>
+            <h3 class="text-lg font-bold text-primary mb-4">בחירת גוון צבע</h3>
+            <p class="text-gray-600 mb-4">בחר את הגוון הרצוי ואנו נכין עבורך את המוצר בסניף שבחרת:</p>
+            <div class="text-center mb-4">
+                <div class="color-option selected" style="background-color: #ffffff;" data-color="לבן" onclick="selectColor(this, 'לבן')"></div>
+                <div class="color-option" style="background-color: #f1f1f1;" data-color="אפור בהיר" onclick="selectColor(this, 'אפור בהיר')"></div>
+                <div class="color-option" style="background-color: #cccccc;" data-color="אפור" onclick="selectColor(this, 'אפור')"></div>
+                <div class="color-option" style="background-color: #ffebee;" data-color="ורוד בהיר" onclick="selectColor(this, 'ורוד בהיר')"></div>
+                <div class="color-option" style="background-color: #fff8e1;" data-color="צהוב בהיר" onclick="selectColor(this, 'צהוב בהיר')"></div>
+                <div class="color-option" style="background-color: #e8f5e9;" data-color="ירוק בהיר" onclick="selectColor(this, 'ירוק בהיר')"></div>
+                <div class="color-option" style="background-color: #e3f2fd;" data-color="כחול בהיר" onclick="selectColor(this, 'כחול בהיר')"></div>
+                <div class="color-option" style="background-color: #f3e5f5;" data-color="סגול בהיר" onclick="selectColor(this, 'סגול בהיר')"></div>
+            </div>
+            <div class="input-container">
+                <select id="colorBranch" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
+                    <option value="התלמיד 6, הוד השרון">סניף התלמיד 6, הוד השרון</option>
+                    <option value="החרש 10, הוד השרון">סניף החרש 10, הוד השרון</option>
+                </select>
+                <label for="colorBranch" class="floating-label text-gray-500">סניף לאיסוף</label>
+            </div>
+            <div class="flex space-x-4 space-x-reverse">
+                <button onclick="submitColorSelection()" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600">אישור</button>
+                <button onclick="closeColorPopup()" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pickupHoursPopup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-button" onclick="closePickupHoursPopup()">×</span>
+            <h3 class="text-lg font-bold text-primary mb-4">שעות איסוף עצמי</h3>
+            <div class="branch-card">
+                <div class="branch-title">סניף התלמיד 6, הוד השרון</div>
+                <div class="branch-hours">שעות איסוף: <span>06:00-16:00</span></div>
+                <div class="branch-phone">טלפון: 09-7602010</div>
+                <div class="branch-address">כתובת: התלמיד 6, הוד השרון</div>
+                <button onclick="navigateToBranch('התלמיד 6, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                    <i class="ri-map-pin-line"></i> ניווט לסניף
+                </button>
+            </div>
+            <div class="branch-card">
+                <div class="branch-title">סניף החרש 10, הוד השרון</div>
+                <div class="branch-hours">שעות איסוף: <span>06:00-16:00</span></div>
+                <div class="branch-phone">טלפון: 09-7402575</div>
+                <div class="branch-address">כתובת: החרש 10, הוד השרון</div>
+                <button onclick="navigateToBranch('החרש 10, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                    <i class="ri-map-pin-line"></i> ניווט לסניף
+                </button>
+            </div>
+            <button onclick="closePickupHoursPopup()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 mt-4">
+                סגור
+            </button>
+        </div>
+    </div>
+
+    <div id="historyPopup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-button" onclick="closeHistoryPopup()">×</span>
+            <h3 class="text-lg font-bold text-primary mb-4">היסטוריית הזמנות</h3>
+            <div id="historyDetails" class="text-sm text-gray-600"></div>
+        </div>
+    </div>
+
+    <div id="calendarPopup" class="popup-overlay">
+        <div class="popup-content">
+            <span class="close-button" onclick="closeCalendar()">×</span>
+            <h3 class="text-lg font-bold text-primary mb-4">בחר תאריך אספקה</h3>
+            <input type="date" id="calendarInput" class="w-full px-4 py-3 border border-gray-300 rounded-button mb-4">
+            <div class="flex space-x-4 space-x-reverse">
+                <button type="button" onclick="selectDate()" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600">אישור</button>
+                <button type="button" onclick="closeCalendar()" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ledNotification" class="led-notification">
+        <span class="led-text"></span>
+    </div>
+
+    <div class="max-w-md mx-auto pb-20 pt-4 px-4">
+        <header class="fixed top-0 right-0 left-0 z-50 bg-white bg-opacity-90 backdrop-blur-md shadow-sm px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-['Pacifico'] text-primary">
+                <img src="https://i.postimg.cc/cJFsg4Zf/unnamed.jpg" alt="ח.סבן חומרי בניין לוגו" class="h-8 w-auto">
+            </h1>
+            <div class="text-lg font-bold">טופס הזמנה חדשה</div>
+        </header>
+
+        <div class="mt-16 mb-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-primary h-2 rounded-full" style="width: 20%"></div>
+            </div>
+            <div class="flex justify-between mt-1 text-xs text-gray-500">
+                <span>ברוכים הבאים</span>
+                <span>פרטי לקוח</span>
+                <span>פרטי אספקה</span>
+                <span>פריטים</span>
+                <span>סיום</span>
+            </div>
+        </div>
+
+        <form id="orderForm" class="space-y-6">
+            <section id="section-welcome" class="glassmorphism rounded-xl p-5 space-y-4 fade-in">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">1</div>
+                    ברוכים הבאים
+                </h2>
+                <div id="welcomeMessage" class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
+                    <p class="font-medium" id="personalWelcome">ברוכים הבאים! אנא מלאו את פרטי ההזמנה</p>
+                    <p class="text-sm mt-2">האם ידעת שניתן לגוון צבע בהזמנה ולהגיע לסניף ויהיה לך מוכן?!</p>
+                    <button onclick="openColorPopup()" class="marketing-button mt-3">
+                        <i class="ri-palette-line"></i> בחר גוון צבע
+                    </button>
+                </div>
+                <div class="marketing-links">
+                    <button type="button" onclick="showSection(5)" class="marketing-button">מידע על מחלקת הזמנות</button>
+                    <button type="button" onclick="showSection(6)" class="marketing-button">שעות פעילות</button>
+                    <a href="https://sites.google.com/view/sb94/home/%D7%AA%D7%9B%D7%A0%D7%95%D7%9F-%D7%91%D7%A0%D7%99%D7%94" target="_blank" class="marketing-button">
+                        <i class="ri-leaf-line"></i> בנייה ירוקה
+                    </a>
+                    <a href="https://sites.google.com/view/sb94/home/%D7%9E%D7%97%D7%A9%D7%99%D7%91%D7%95%D7%9F" target="_blank" class="marketing-button">
+                        <i class="ri-calculator-line"></i> מחשבוני חומרי בניין
+                    </a>
+                </div>
+                <button type="button" id="nextToCustomer" class="w-full bg-green-500 text-white py-3 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer">הזמנה חדשה</button>
+            </section>
+
+            <section id="section-customer" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">2</div>
+                    פרטי לקוח
+                </h2>
+                <div class="input-container">
+                    <input type="text" id="customerName" name="customerName" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" required placeholder=" " oninput="updateWelcomeMessage();fetchCustomerData(this.value)">
+                    <label for="customerName" class="floating-label text-gray-500">שם לקוח *</label>
+                </div>
+                <div class="input-container">
+                    <input type="tel" id="customerPhone" name="customerPhone" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" required placeholder=" " pattern="[0-9]{10}" oninput="fetchCustomerData(this.value)">
+                    <label for="customerPhone" class="floating-label text-gray-500">טלפון *</label>
+                    <small class="text-gray-500 block mt-1">לדוגמה: 0501234567</small>
+                </div>
+                <button type="button" onclick="showHistoryPopup()" class="w-full bg-blue-500 text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">הצג היסטוריית לקוח</button>
+                <div class="flex space-x-4 space-x-reverse">
+                    <button type="button" id="backToWelcome" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
+                    <button type="button" id="nextToDelivery" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">המשך לפרטי אספקה</button>
+                </div>
+            </section>
+
+            <section id="section-delivery" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">3</div>
+                    פרטי אספקה
+                </h2>
+                <div class="input-container">
+                    <select id="deliveryType" name="deliveryType" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white" onchange="checkSelfPickup()">
+                        <option value="" disabled selected>בחר סוג אספקה</option>
+                        <option value="פריקה ידנית">פריקה ידנית 👐</option>
+                        <option value="פריקת מנוף 10 מטר">פריקת מנוף 10 מטר 🏗️</option>
+                        <option value="פריקת מנוף 15 מטר">פריקת מנוף 15 מטר 🏗️</option>
+                        <option value="עבודת מנוף עד שעה">עבודת מנוף עד שעה ⏰</option>
+                        <option value="עבודת מנוף עד שעתיים">עבודת מנוף עד שעתיים ⏰</option>
+                        <option value="הצבת מכולה">הצבת מכולה 📦</option>
+                        <option value="החלפת מכולה">החלפת מכולה 🔄</option>
+                        <option value="הוצאת מכולה">הוצאת מכולה 🚚</option>
+                        <option value="איסוף עצמי">איסוף עצמי 🚗</option>
+                    </select>
+                    <label for="deliveryType" class="floating-label text-gray-500">סוג אספקה *</label>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="deliveryDate" name="deliveryDate" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " readonly>
+                    <label for="deliveryDate" class="floating-label text-gray-500">תאריך אספקה</label>
+                </div>
+                <div class="input-container">
+                    <select id="deliveryTime" name="deliveryTime" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
+                        <option value="" disabled selected>בחר שעת אספקה</option>
+                        <option value="06:00">06:00</option>
+                        <option value="06:30">06:30</option>
+                        <option value="07:00">07:00</option>
+                        <option value="07:30">07:30</option>
+                        <option value="08:00">08:00</option>
+                        <option value="08:30">08:30</option>
+                        <option value="09:00">09:00</option>
+                        <option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option>
+                        <option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option>
+                        <option value="11:30">11:30</option>
+                        <option value="12:00">12:00</option>
+                        <option value="12:30">12:30</option>
+                        <option value="13:00">13:00</option>
+                        <option value="13:30">13:30</option>
+                        <option value="14:00">14:00</option>
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                        <option value="16:00">16:00</option>
+                        <option value="16:30">16:30</option>
+                        <option value="17:00">17:00</option>
+                    </select>
+                    <label for="deliveryTime" class="floating-label text-gray-500">שעת אספקה</label>
+                </div>
+                <div class="input-container autocomplete-container">
+                    <input type="text" id="city" name="city" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                    <label for="city" class="floating-label text-gray-500">עיר</label>
+                    <div id="cityAutocomplete" class="autocomplete-items hidden"></div>
+                </div>
+                <div class="flex space-x-4 space-x-reverse">
+                    <div class="input-container flex-1">
+                        <input type="text" id="street" name="street" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                        <label for="street" class="floating-label text-gray-500">רחוב</label>
+                    </div>
+                    <div class="input-container w-1/3">
+                        <input type="text" id="streetNumber" name="streetNumber" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                        <label for="streetNumber" class="floating-label text-gray-500">מספר רחוב</label>
+                    </div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="contactPerson" name="contactPerson" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+                    <label for="contactPerson" class="floating-label text-gray-500">איש קשר</label>
+                </div>
+                <div class="input-container">
+                    <input type="tel" id="contactPhone" name="contactPhone" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" " pattern="[0-9]{10}">
+                    <label for="contactPhone" class="floating-label text-gray-500">טלפון איש קשר</label>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <p class="text-sm mb-2">תרצה לשלוח מיקום מדויק? נשמח! 👇</p>
+                    <button onclick="shareLocation()" class="flex items-center justify-center bg-green-500 text-white py-3 px-4 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer">
+                        <i class="ri-map-pin-line ri-lg ml-2"></i>
+                        לחץ כאן לשיתוף מיקום בווצאפ
+                    </button>
+                </div>
+                <div class="flex space-x-4 space-x-reverse">
+                    <button type="button" id="backToCustomer" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
+                    <button type="button" id="nextToItems" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">המשך לפריטים</button>
+                </div>
+            </section>
+
+            <section id="section-items" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">4</div>
+                    רשימת פריטים
+                </h2>
+                <div class="input-container">
+                    <select id="productCategory" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white">
+                        <option value="all">כל הקטגוריות</option>
+                        <option value="בלוקים">בלוקים</option>
+                        <option value="מלט וגבס">מלט וגבס</option>
+                        <option value="ברזל">ברזל</option>
+                        <option value="גבס">לוחות גבס</option>
+                        <option value="קרמיקה">קרמיקה ופורצלן</option>
+                        <option value="צבע">צבעים</option>
+                        <option value="צנרת">צנרת</option>
+                        <option value="דבקים">דבקים ורובה</option>
+                        <option value="חומרים">חומרים (חול, טיט, חצץ)</option>
+                    </select>
+                    <label for="productCategory" class="floating-label text-gray-500">קטגוריית מוצר</label>
+                </div>
+                <div id="items-container" class="space-y-4"></div>
+                <button type="button" id="addItem" class="w-full border border-dashed border-primary text-primary py-3 rounded-button hover:bg-blue-50 transition duration-300 cursor-pointer flex items-center justify-center">
+                    <i class="ri-add-line ri-lg ml-2"></i>
+                    הוסף פריט
+                </button>
+                <div class="flex space-x-4 space-x-reverse mt-4">
+                    <button type="button" id="backToDelivery" class="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
+                    <button type="button" id="nextToNotes" class="w-1/2 bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">המשך להערות</button>
+                </div>
+            </section>
+
+            <section id="section-notes" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <div class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full mr-2">5</div>
+                    הערות וסיום
+                </h2>
+                <div class="input-container">
+                    <textarea id="notes" name="notes" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="הערות נוספות להזמנה..."></textarea>
+                </div>
+                <div class="input-container">
+                    <input type="file" id="attachment" name="attachment" accept="image/*,application/pdf" class="w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <label for="attachment" class="floating-label text-gray-500">צרף תמונה/מסמך</label>
+                </div>
+                <div id="orderSummary" class="bg-blue-50 p-4 rounded-xl border border-blue-100 hidden">
+                    <h3 class="font-bold mb-2">סיכום הזמנה:</h3>
+                    <div id="summaryContent" class="text-sm space-y-1"></div>
+                </div>
+                <div class="flex space-x-4 space-x-reverse">
+                    <button type="button" id="saveDraft" class="w-1/2 bg-yellow-500 text-white py-3 rounded-button hover:bg-yellow-600 transition duration-300 cursor-pointer flex items-center justify-center">
+                        <i class="ri-save-line ri-lg ml-2"></i>
+                        שמור טיוטה
+                    </button>
+                    <button type="button" id="sendOrder" class="w-1/2 bg-green-500 text-white py-3 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer flex items-center justify-center">
+                        <i class="ri-whatsapp-line ri-lg ml-2"></i>
+                        שלח הזמנה
+                    </button>
+                </div>
+                <div class="flex space-x-4 space-x-reverse mt-2">
+                    <button type="button" id="backToItems" class="w-full bg-gray-200 text-gray-700 py-3 rounded-button hover:bg-gray-300 transition duration-300 cursor-pointer">חזרה</button>
+                </div>
+            </section>
+
+            <section id="section-info" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+                <h2 class="text-lg font-bold text-primary mb-4">מידע על מחלקת הזמנות</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-md font-semibold">על מחלקת ההזמנות</h3>
+                        <p class="text-gray-600">
+                            מחלקת ההזמנות של ח.סבן חומרי בניין מחויבת לספק שירות מהיר, אמין ומקצועי לכל לקוחותינו. אנו מציעים מגוון רחב של חומרי בניין איכותיים, עם אפשרויות אספקה גמישות המותאמות לצרכי הלקוח.<br><br>
+                            הצוות שלנו זמין לענות על שאלות, לספק ייעוץ מקצועי ולוודא שההזמנה שלכם מגיעה בזמן ובמצב מושלם. בין אם אתם קבלנים, בעלי מקצוע או לקוחות פרטיים, אנו כאן כדי לתמוך בפרויקטים שלכם.
+                        </p>
+                    </div>
+                    <div id="products">
+                        <h3 class="text-md font-semibold">מוצרים זמינים</h3>
+                        <p class="text-gray-600 mb-2">אנו מציעים מגוון רחב של חומרי בניין, כולל:</p>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>בלוקים (7 ס"מ, 10 ס"מ, 15 ס"מ, 20 ס"מ, 22 ס"מ, 25 ס"מ)</li>
+                            <li>מלט (אפור, לבן)</li>
+                            <li>ברזל בניין (8 מ"מ, 10 מ"מ, 12 מ"מ, 14 מ"מ, 16 מ"מ)</li>
+                            <li>רשתות ברזל (6 מ"מ, 8 מ"מ, 10x10)</li>
+                            <li>לוחות גבס (לבן, ירוק, ורוד, כתום)</li>
+                            <li>קרמיקה ופורצלן (רצפה וקיר)</li>
+                            <li>צבעים (נירלט, טמבור, פריימר)</li>
+                            <li>צינורות פלסטיק וביוב</li>
+                            <li>דבקים ורובה לקרמיקה, פורצלן ושיש</li>
+                            <li>חול, סומסום, טיט, חצץ</li>
+                        </ul>
+                        <p class="text-gray-600 mt-2">לרשימה המלאה, צרו קשר עם מחלקת ההזמנות בטלפון: 09-7602010</p>
+                    </div>
+                </div>
+                <button type="button" onclick="showSection(0)" class="w-full bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">חזרה לראשי</button>
+            </section>
+
+            <section id="section-hours" class="glassmorphism rounded-xl p-5 space-y-4 hidden">
+                <h2 class="text-lg font-bold text-primary mb-4">שעות פעילות הסניפים</h2>
+                <div class="space-y-4">
+                    <div class="branch-card">
+                        <div class="branch-title">סניף התלמיד 6, הוד השרון</div>
+                        <div class="branch-hours">שעות פעילות: <span>ראשון-חמישי: 06:00-18:00 | שישי: 06:00-14:00</span></div>
+                        <div class="branch-hours">שעות איסוף עצמי: <span>06:00-16:00</span></div>
+                        <div class="branch-phone">טלפון: 09-7602010</div>
+                        <div class="branch-address">כתובת: התלמיד 6, הוד השרון</div>
+                        <button onclick="navigateToBranch('התלמיד 6, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                            <i class="ri-map-pin-line"></i> ניווט לסניף
+                        </button>
+                    </div>
+                    <div class="branch-card">
+                        <div class="branch-title">סניף החרש 10, הוד השרון</div>
+                        <div class="branch-hours">שעות פעילות: <span>ראשון-חמישי: 06:00-18:00 | שישי: 06:00-14:00</span></div>
+                        <div class="branch-hours">שעות איסוף עצמי: <span>06:00-16:00</span></div>
+                        <div class="branch-phone">טלפון: 09-7402575</div>
+                        <div class="branch-address">כתובת: החרש 10, הוד השרון</div>
+                        <button onclick="navigateToBranch('החרש 10, הוד השרון')" class="branch-button bg-primary text-white py-2 rounded-button hover:bg-blue-600">
+                            <i class="ri-map-pin-line"></i> ניווט לסניף
+                        </button>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <h3 class="font-bold mb-2">שעות משלוחים:</h3>
+                        <p class="text-sm">ראשון-חמישי: 06:30-16:30</p>
+                        <p class="text-sm">שישי: 06:30-13:00</p>
+                    </div>
+                </div>
+                <button type="button" onclick="showSection(0)" class="w-full bg-primary text-white py-3 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">חזרה לראשי</button>
+            </section>
+
+            <div id="successMessage" class="glassmorphism rounded-xl p-5 text-center hidden">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ri-check-line ri-2x text-green-500"></i>
+                </div>
+                <h2 class="text-xl font-bold text-green-500 mb-2">ההזמנה נשלחה בהצלחה!</h2>
+                <p class="text-gray-600 mb-4">פרטי ההזמנה נשלחו למחלקת ההזמנות ויטופלו בהקדם.</p>
+                <button onclick="shareAdditionalNote()" class="block bg-green-500 text-white py-3 px-6 rounded-button hover:bg-green-600 transition duration-300 cursor-pointer mb-4">
+                    שלח הודעה נוספת לנהג/מחלקת הזמנות
+                </button>
+                <button type="button" id="newOrder" class="bg-primary text-white py-3 px-6 rounded-button hover:bg-blue-600 transition duration-300 cursor-pointer">הזמנה חדשה</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 flex justify-around py-2 z-50">
+        <a href="#" onclick="showSection(0)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+            <div class="w-6 h-6 flex items-center justify-center">
+                <i class="ri-home-line ri-lg text-primary bottom-nav-icon"></i>
+            </div>
+            <span class="text-xs mt-1 text-primary">ראשי</span>
+        </a>
+        <a href="#" onclick="showSection(1)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+            <div class="w-6 h-6 flex items-center justify-center">
+                <i class="ri-file-list-line ri-lg text-gray-400 bottom-nav-icon"></i>
+            </div>
+            <span class="text-xs mt-1 text-gray-400">הזמנות</span>
+        </a>
+        <a href="#" onclick="showSection(5)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+            <div class="w-6 h-6 flex items-center justify-center">
+                <i class="ri-shopping-cart-line ri-lg text-gray-400 bottom-nav-icon"></i>
+            </div>
+            <span class="text-xs mt-1 text-gray-400">מוצרים</span>
+        </a>
+        <a href="#" onclick="showSection(6)" class="flex flex-col items-center justify-center w-1/4 cursor-pointer">
+            <div class="w-6 h-6 flex items-center justify-center">
+                <i class="ri-time-line ri-lg text-gray-400 bottom-nav-icon"></i>
+            </div>
+            <span class="text-xs mt-1 text-gray-400">שעות פעילות</span>
+        </a>
+    </div>
+
+    <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-5 rounded-xl flex flex-col items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
+            <p class="text-gray-700">מעבד את ההזמנה...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
