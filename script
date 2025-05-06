@@ -1,0 +1,547 @@
+const cities = ["ירושלים", "תל אביב", "חיפה", "ראשון לציון", "פתח תקווה", "אשדוד", "נתניה", "באר שבע", "חולון", "בני ברק"];
+const products = [
+    { name: "בלוק,7 ס\"מ", category: "בלוקים" },
+    { name: "מלט,אפור 25 ק\"ג", category: "מלט וגבס" },
+    { name: "ברזל בניין,8 מ\"מ", category: "ברזל" },
+    { name: "לוח גבס,לבן 2.0", category: "גבס" },
+    { name: "קרמיקה,לרצפה", category: "קרמיקה" },
+    { name: "צבע,לבן נירלט 18 ליטר", category: "צבע" },
+    { name: "צינור פלסטיק,1/2 אינץ'", category: "צנרת" },
+    { name: "דבק,603 קרמיקה 25 ק\"ג", category: "דבקים" },
+    { name: "חול שק", category: "חומרים" }
+];
+
+const WEB_APP_URL = 'YOUR_WEB_APP_URL'; // החלף עם ה-URL של Google Apps Script Web App
+const WHATSAPP_NUMBER = '+972508860896';
+
+const fuse = new Fuse(products, {
+    keys: ['name'],
+    threshold: 0.3,
+    includeScore: true
+});
+
+const ledMessages = {
+    customerName: ["הזינו שם לקוח מדויק לקבלת שירות מהיר"],
+    customerPhone: ["מספר טלפון תקין מבטיח עדכונים בזמן אמת"],
+    deliveryType: ["בחרו סוג אספקה שמתאים לפרויקט שלכם"],
+    deliveryDate: ["בחרו תאריך אספקה לדיוק מרבי"],
+    productCategory: ["בחרו קטגוריה להתאמה מהירה של מוצרים"],
+    notes: ["הוסיפו הערות לדיוק ההזמנה"]
+};
+
+class NotificationManager {
+    constructor() {
+        this.notificationElement = document.getElementById('ledNotification');
+        this.textElement = this.notificationElement.querySelector('.led-text');
+        this.currentMessage = '';
+    }
+
+    showMessage(fieldId) {
+        const messages = ledMessages[fieldId] || ["אנא מלאו את השדה בדיוק"];
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        if (this.currentMessage !== message) {
+            this.currentMessage = message;
+            this.textElement.textContent = message;
+            this.notificationElement.classList.add('show');
+            setTimeout(() => {
+                this.notificationElement.classList.remove('show');
+            }, 5000);
+        }
+    }
+}
+
+const notificationManager = new NotificationManager();
+
+class CustomerDatabase {
+    constructor() {
+        this.customers = [];
+    }
+
+    async fetchCustomer(searchTerm) {
+        try {
+            const response = await fetch(`${WEB_APP_URL}?action=searchCustomer&searchTerm=${encodeURIComponent(searchTerm)}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            this.customers = data.success ? data.customers : [];
+            return this.customers;
+        } catch (error) {
+            console.error('שגיאה בחיפוש לקוח:', error);
+            showToast('שגיאה בחיפוש לקוח. אנא נסה שוב.', 'error');
+            return [];
+        }
+    }
+
+    async fetchCustomerHistory(customerId) {
+        try {
+            const response = await fetch(`${WEB_APP_URL}?action=getCustomerHistory&customerId=${customerId}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            return data.success ? data.history : [];
+        } catch (error) {
+            console.error('שגיאה בטעינת היסטוריית לקוח:', error);
+            showToast('שגיאה בטעינת היסטוריית לקוח. אנא נסה שוב.', 'error');
+            return [];
+        }
+    }
+
+    async saveOrder(orderData) {
+        try {
+            const response = await fetch(`${WEB_APP_URL}?action=saveOrder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            return data.success;
+        } catch (error) {
+            console.error('שגיאה בשמירת הזמנה:', error);
+            showToast('שגיאה בשמירת הזמנה. אנא נסה שוב.', 'error');
+            return false;
+        }
+    }
+
+    async saveDraft(orderData) {
+        try {
+            const response = await fetch(`${WEB_APP_URL}?action=saveDraft`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            return data.success;
+        } catch (error) {
+            console.error('שגיאה בשמירת טיוטה:', error);
+            showToast('שגיאה בשמירת טיוטה. אנא נסה שוב.', 'error');
+            return false;
+        }
+    }
+}
+
+const customerDatabase = new CustomerDatabase();
+
+function showToast(message, type = 'info') {
+    Toastify({
+        text: message,
+        duration: 3000,
+        gravity: 'bottom',
+        position: 'right',
+        backgroundColor: type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#17a2b8'
+    }).showToast();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('welcomePopup').classList.add('active');
+    setupEventListeners();
+    setupAutocomplete();
+    setupDeliveryDate();
+});
+
+function setupEventListeners() {
+    const listeners = [
+        { id: 'nextToCustomer', event: 'click', handler: () => showSection(1) },
+        { id: 'backToWelcome', event: 'click', handler: () => showSection(0) },
+        { id: 'nextToDelivery', event: 'click', handler: () => validateCustomerSection() && showSection(2) },
+        { id: 'backToCustomer', event: 'click', handler: () => showSection(1) },
+        { id: 'nextToItems', event: 'click', handler: () => validateDeliverySection() && showSection(3) },
+        { id: 'backToDelivery', event: 'click', handler: () => showSection(2) },
+        { id: 'nextToNotes', event: 'click', handler: () => validateItemsSection() && showSection(4) },
+        { id: 'backToItems', event: 'click', handler: () => showSection(3) },
+        { id: 'addItem', event: 'click', handler: addItem },
+        { id: 'sendOrder', event: 'click', handler: showConfirmationModal },
+        { id: 'saveDraft', event: 'click', handler: saveDraft },
+        { id: 'newOrder', event: 'click', handler: resetForm },
+        { id: 'deliveryDate', event: 'click', handler: openCalendar },
+        { id: 'productCategory', event: 'change', handler: updateProductOptions }
+    ];
+
+    listeners.forEach(({ id, event, handler }) => {
+        const element = document.getElementById(id);
+        if (element) element.addEventListener(event, handler);
+    });
+
+    ['customerName', 'customerPhone', 'deliveryType', 'deliveryDate', 'productCategory', 'notes'].forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            element.addEventListener('focus', () => notificationManager.showMessage(fieldId));
+            element.addEventListener('mouseover', () => notificationManager.showMessage(fieldId));
+        }
+    });
+}
+
+function setupAutocomplete() {
+    const cityInput = document.getElementById('city');
+    const autocompleteContainer = document.getElementById('cityAutocomplete');
+
+    cityInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        autocompleteContainer.innerHTML = '';
+        if (!value) {
+            autocompleteContainer.classList.add('hidden');
+            return;
+        }
+
+        const filteredCities = cities.filter(city => city.includes(value));
+        filteredCities.forEach(city => {
+            const div = document.createElement('div');
+            div.textContent = city;
+            div.addEventListener('click', () => {
+                cityInput.value = city;
+                autocompleteContainer.classList.add('hidden');
+            });
+            autocompleteContainer.appendChild(div);
+        });
+
+        autocompleteContainer.classList.toggle('hidden', filteredCities.length === 0);
+    });
+
+    document.addEventListener('click', e => {
+        if (e.target !== cityInput) {
+            autocompleteContainer.classList.add('hidden');
+        }
+    });
+}
+
+function setupDeliveryDate() {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const formattedDate = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
+    document.getElementById('deliveryDate').value = formattedDate;
+}
+
+function showSection(sectionIndex) {
+    const sections = [
+        'section-welcome',
+        'section-customer',
+        'section-delivery',
+        'section-items',
+        'section-notes',
+        'section-info',
+        'section-hours'
+    ];
+
+    sections.forEach(section => {
+        document.getElementById(section).classList.add('hidden');
+    });
+
+    document.getElementById(sections[sectionIndex]).classList.remove('hidden');
+    document.getElementById('successMessage').classList.add('hidden');
+    updateProgressBar(sectionIndex);
+    updateBottomNavigation(sectionIndex);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateProgressBar(sectionIndex) {
+    const progressPercentages = [20, 40, 60, 80, 100, 20, 20];
+    document.getElementById('progress-bar').style.width = `${progressPercentages[sectionIndex]}%`;
+}
+
+function updateBottomNavigation(sectionIndex) {
+    const navItems = document.querySelectorAll('.bottom-nav-icon');
+    navItems.forEach((item, index) => {
+        const isActive = index === sectionIndex || (sectionIndex > 4 && index === 0);
+        item.classList.toggle('text-primary', isActive);
+        item.classList.toggle('text-gray-400', !isActive);
+        item.parentElement.nextElementSibling.classList.toggle('text-primary', isActive);
+        item.parentElement.nextElementSibling.classList.toggle('text-gray-400', !isActive);
+    });
+}
+
+function validateCustomerSection() {
+    const name = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    if (!name) {
+        showToast('אנא הזן שם לקוח', 'error');
+        return false;
+    }
+    if (!phone.match(/^[0-9]{10}$/)) {
+        showToast('אנא הזן מספר טלפון תקין (10 ספרות)', 'error');
+        return false;
+    }
+    return true;
+}
+
+function validateDeliverySection() {
+    const deliveryType = document.getElementById('deliveryType').value;
+    const deliveryDate = document.getElementById('deliveryDate').value;
+    if (!deliveryType) {
+        showToast('אנא בחר סוג אספקה', 'error');
+        return false;
+    }
+    if (!deliveryDate) {
+        showToast('אנא בחר תאריך אספקה', 'error');
+        return false;
+    }
+    return true;
+}
+
+function validateItemsSection() {
+    const items = document.querySelectorAll('.item-row');
+    if (items.length === 0) {
+        showToast('אנא הוסף לפחות פריט אחד', 'error');
+        return false;
+    }
+    for (let item of items) {
+        const product = item.querySelector('.product-select').value;
+        const quantity = item.querySelector('.quantity-input').value;
+        if (!product || !quantity || quantity <= 0) {
+            showToast('אנא מלא את כל פרטי הפריטים', 'error');
+            return false;
+        }
+    }
+    return true;
+}
+
+function addItem() {
+    const itemsContainer = document.getElementById('items-container');
+    const itemRow = document.createElement('div');
+    itemRow.className = 'item-row bg-white p-4 rounded-xl border border-gray-200';
+    itemRow.innerHTML = `
+        <div class="input-container mb-2">
+            <input type="text" class="product-select w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-transparent" placeholder=" ">
+            <label class="floating-label text-gray-500">מוצר</label>
+            <div class="autocomplete-items hidden"></div>
+        </div>
+        <div class="flex space-x-2 space-x-reverse">
+            <div class="input-container flex-1">
+                <input type="number" class="quantity-input w-full px-4 py-3 border border-gray-300 rounded-button focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" min="1" value="1">
+                <label class="floating-label text-gray-500">כמות</label>
+            </div>
+            <button type="button" class="remove-item bg-red-500 text-white px-3 py-2 rounded-button hover:bg-red-600">
+                <i class="ri-delete-bin-line"></i>
+            </button>
+        </div>
+    `;
+    itemsContainer.appendChild(itemRow);
+    setupProductAutocomplete(itemRow.querySelector('.product-select'), itemRow.querySelector('.autocomplete-items'));
+    itemRow.querySelector('.remove-item').addEventListener('click', () => itemRow.remove());
+}
+
+function setupProductAutocomplete(input, autocompleteContainer) {
+    input.addEventListener('input', function() {
+        const value = this.value.trim();
+        autocompleteContainer.innerHTML = '';
+        if (!value) {
+            autocompleteContainer.classList.add('hidden');
+            return;
+        }
+
+        const category = document.getElementById('productCategory').value;
+        let filteredProducts = products;
+        if (category !== 'all') {
+            filteredProducts = products.filter(p => p.category === category);
+        }
+        const fuseFiltered = fuse.search(value);
+        fuseFiltered.slice(0, 5).forEach(result => {
+            const div = document.createElement('div');
+            div.textContent = result.item.name;
+            div.addEventListener('click', () => {
+                input.value = result.item.name;
+                autocompleteContainer.classList.add('hidden');
+            });
+            autocompleteContainer.appendChild(div);
+        });
+
+        autocompleteContainer.classList.toggle('hidden', fuseFiltered.length === 0);
+    });
+
+    document.addEventListener('click', e => {
+        if (e.target !== input) {
+            autocompleteContainer.classList.add('hidden');
+        }
+    });
+}
+
+function updateProductOptions() {
+    const items = document.querySelectorAll('.item-row');
+    items.forEach(item => {
+        const input = item.querySelector('.product-select');
+        const autocompleteContainer = item.querySelector('.autocomplete-items');
+        input.value = '';
+        setupProductAutocomplete(input, autocompleteContainer);
+    });
+}
+
+function closeWelcomePopup() {
+    document.getElementById('welcomePopup').classList.remove('active');
+}
+
+function closeCrmPopup() {
+    document.getElementById('crmPopup').classList.remove('active');
+}
+
+function closeConfirmationModal() {
+    document.getElementById('confirmationModal').classList.remove('active');
+}
+
+function closeColorPopup() {
+    document.getElementById('colorPopup').classList.remove('active');
+}
+
+function closePickupHoursPopup() {
+    document.getElementById('pickupHoursPopup').classList.remove('active');
+}
+
+function closeHistoryPopup() {
+    document.getElementById('historyPopup').classList.remove('active');
+}
+
+function closeCalendar() {
+    document.getElementById('calendarPopup').classList.remove('active');
+}
+
+function openColorPopup() {
+    document.getElementById('colorPopup').classList.add('active');
+}
+
+function openCalendar() {
+    document.getElementById('calendarPopup').classList.add('active');
+}
+
+function showHistoryPopup() {
+    const customerId = document.getElementById('customerPhone').value;
+    if (!customerId) {
+        showToast('אנא הזן מספר טלפון תחילה', 'error');
+        return;
+    }
+    customerDatabase.fetchCustomerHistory(customerId).then(history => {
+        const historyDetails = document.getElementById('historyDetails');
+        historyDetails.innerHTML = history.length > 0
+            ? history.map(h => `<p>הזמנה ${h.orderId}: ${h.date} - ${h.items.join(', ')}</p>`).join('')
+            : '<p>אין היסטוריית הזמנות עבור לקוח זה.</p>';
+        document.getElementById('historyPopup').classList.add('active');
+    });
+}
+
+function selectDate() {
+    const calendarInput = document.getElementById('calendarInput').value;
+    if (calendarInput) {
+        const date = new Date(calendarInput);
+        const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        document.getElementById('deliveryDate').value = formattedDate;
+    }
+    closeCalendar();
+}
+
+let selectedColor = 'לבן';
+function selectColor(element, color) {
+    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+    selectedColor = color;
+}
+
+function submitColorSelection() {
+    const branch = document.getElementById('colorBranch').value;
+    addItem();
+    const lastItem = document.querySelector('.item-row:last-child .product-select');
+    lastItem.value = `צבע - גוון ${selectedColor} (${branch})`;
+    closeColorPopup();
+}
+
+function checkSelfPickup() {
+    const deliveryType = document.getElementById('deliveryType').value;
+    if (deliveryType === 'איסוף עצמי') {
+        document.getElementById('pickupHoursPopup').classList.add('active');
+    }
+}
+
+function navigateToBranch(address) {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    window.open(url, '_blank');
+}
+
+function shareLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
+            const message = `מיקום ההזמנה: https://www.google.com/maps?q=${latitude},${longitude}`;
+            const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }, () => {
+            showToast('לא ניתן לקבל את המיקום. אנא שתף ידנית.', 'error');
+        });
+    } else {
+        showToast('שיתוף מיקום אינו נתמך בדפדפן זה.', 'error');
+    }
+}
+
+function updateWelcomeMessage() {
+    const name = document.getElementById('customerName').value.trim();
+    document.getElementById('personalWelcome').textContent = name
+        ? `שלום ${name}, אנא מלאו את פרטי ההזמנה`
+        : 'ברוכים הבאים! אנא מלאו את פרטי ההזמנה';
+}
+
+function shareAdditionalNote() {
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('הודעה נוספת להזמנה: ')}`;
+    window.open(url, '_blank');
+}
+
+function fetchCustomerData(searchTerm) {
+    if (searchTerm.length >= 3) {
+        customerDatabase.fetchCustomer(searchTerm).then(customers => {
+            if (customers.length > 0) {
+                document.getElementById('customerName').value = customers[0].name;
+                document.getElementById('customerPhone').value = customers[0].phone;
+                updateWelcomeMessage();
+            }
+        });
+    }
+}
+
+function showConfirmationModal() {
+    if (!validateCustomerSection() || !validateDeliverySection() || !validateItemsSection()) {
+        return;
+    }
+
+    const summary = generateOrderSummary();
+    document.getElementById('confirmationSummary').innerHTML = summary;
+    document.getElementById('confirmationModal').classList.add('active');
+}
+
+function generateOrderSummary() {
+    const formData = {
+        customerName: document.getElementById('customerName').value,
+        customerPhone: document.getElementById('customerPhone').value,
+        deliveryType: document.getElementById('deliveryType').value,
+        deliveryDate: document.getElementById('deliveryDate').value,
+        deliveryTime: document.getElementById('deliveryTime').value,
+        city: document.getElementById('city').value,
+        street: document.getElementById('street').value,
+        streetNumber: document.getElementById('streetNumber').value,
+        contactPerson: document.getElementById('contactPerson').value,
+        contactPhone: document.getElementById('contactPhone').value,
+        notes: document.getElementById('notes').value,
+        items: Array.from(document.querySelectorAll('.item-row')).map(item => ({
+            product: item.querySelector('.product-select').value,
+            quantity: item.querySelector('.quantity-input').value
+        }))
+    };
+
+    let summary = `
+        <p><strong>שם לקוח:</strong> ${formData.customerName}</p>
+        <p><strong>טלפון:</strong> ${formData.customerPhone}</p>
+        <p><strong>סוג אספקה:</strong> ${formData.deliveryType}</p>
+        <p><strong>תאריך אספקה:</strong> ${formData.deliveryDate}</p>
+    `;
+    if (formData.deliveryTime) summary += `<p><strong>שעת אספקה:</strong> ${formData.deliveryTime}</p>`;
+    if (formData.city) summary += `<p><strong>עיר:</strong> ${formData.city}</p>`;
+    if (formData.street) summary += `<p><strong>רחוב:</strong> ${formData.street}</p>`;
+    if (formData.streetNumber) summary += `<p><strong>מספר רחוב:</strong> ${formData.streetNumber}</p>`;
+    if (formData.contactPerson) summary += `<p><strong>איש קשר:</strong> ${formData.contactPerson}</p>`;
+    if (formData.contactPhone) summary += `<p><strong>טלפון איש קשר:</strong> ${formData.contactPhone}</p>`;
+    summary += `<p><strong>פריטים:</strong></p><ul>`;
+    formData.items.forEach(item => {
+        summary += `<li>${item.product} - כמות: ${item.quantity}</li>`;
+    });
+    summary += `</ul>`;
+    if (formData.notes) summary += `<p><strong>הערות:</strong> ${formData.notes}</p>`;
+
+    return summary;
+}
+
+async function confirmOrder() {
+    document.getElementById('loadingSpinner').classList.remove('hidden');
+    const form
