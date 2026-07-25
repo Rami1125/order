@@ -127,6 +127,17 @@ async function startServer() {
   // Increase payload limit for Base64 image/document/audio uploads
   app.use(express.json({ limit: '25mb' }));
 
+  // CORS middleware for public domain access (Vercel & AI Studio)
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // Initialize Gemini AI Client lazily on request or server boot
   let aiClient: GoogleGenAI | null = null;
   let customSystemPrompt: string | null = null;

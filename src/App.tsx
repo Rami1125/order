@@ -30,6 +30,8 @@ export default function App() {
       const isMagicParam = urlParams.get('magic') === 'true' || urlParams.get('mode') === 'magic';
       const clientIdParam =
         urlParams.get('token') ||
+        urlParams.get('customerId') ||
+        urlParams.get('customer') ||
         urlParams.get('client') ||
         urlParams.get('client_id') ||
         urlParams.get('id') ||
