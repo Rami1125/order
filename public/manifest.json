@@ -1,14 +1,14 @@
 {
-  "short_name": "דף הקסם",
-  "name": "דף הקסם | Magic Client Portal - נועה AI",
+  "short_name": "אפליקציית הזמנות",
+  "name": " AI | נועה ",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=192",
+      "src": "https://i.ibb.co/cX6npD8k/icon-192x192.png",
       "type": "image/jpeg",
       "sizes": "192x192"
     },
     {
-      "src": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=512",
+      "src": "https://i.ibb.co/cX6npD8k/icon-192x192.png",
       "type": "image/jpeg",
       "sizes": "512x512"
     }
