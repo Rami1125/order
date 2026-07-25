@@ -34,7 +34,7 @@ let currentOrderLog: Order[] = [...MOCK_ORDER_LOG];
 let currentCustomerOrders: Order[] = [...INITIAL_CUSTOMER_ORDERS];
 
 // Default deployed Google Apps Script Web App URL
-let appsScriptUrl: string = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyrCr5laB4ZZnCSinBAbbre3LAIH8Joi0dF0tZFLbpeNc5-Kkzq8SRN2j8PIEKkDxgU/exec';
+let appsScriptUrl: string = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxGHpLWX-1-XH4gaEy67Q05sLzKjhrrUd7kskMEYqDBTobnuFRUTIYXSrES1G1F4o0i/exec';
 
 // Initialize full Google Sheets Database in server memory
 let liveSheetsDb: LiveSheetsDatabase = {
