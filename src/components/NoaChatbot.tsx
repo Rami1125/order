@@ -212,6 +212,10 @@ export const NoaChatbot: React.FC<NoaChatbotProps> = ({
         }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
+
       const data = await res.json();
 
       if (data.success) {

@@ -26,14 +26,16 @@ export const SystemPromptEditor: React.FC<SystemPromptEditorProps> = ({
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch('/api/system-prompt');
-        const data = await res.json();
-        if (data.success && data.isCustomized && data.prompt) {
-          setIsCustomActive(true);
-          setPromptText(data.prompt);
-        } else {
-          setIsCustomActive(false);
-          setPromptText(generatedPrompt);
+        const res = await fetch('/api/system-prompt').catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data.success && data.isCustomized && data.prompt) {
+            setIsCustomActive(true);
+            setPromptText(data.prompt);
+          } else {
+            setIsCustomActive(false);
+            setPromptText(generatedPrompt);
+          }
         }
       } catch {
         // Fallback

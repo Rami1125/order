@@ -22,10 +22,12 @@ export const WhistleblowerDashboard: React.FC<WhistleblowerDashboardProps> = ({
   const fetchActivityFeed = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch('/api/activity');
-      if (res.ok) {
+      const res = await fetch('/api/activity').catch(() => null);
+      if (res && res.ok) {
         const data = await res.json();
-        setActivities(data);
+        if (Array.isArray(data)) {
+          setActivities(data);
+        }
       }
     } catch {
       // Ignore
