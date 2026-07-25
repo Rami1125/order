@@ -1,0 +1,6 @@
+{
+  "name": "מערך לוגיסטיקה חומרי בניין - נועה AI",
+  "description": "מערכת לוגיסטית מתקדמת להזמנות חומרי בניין עם עוזרת אישית וירטואלית נועה, Magic Link ללקוחות, וספר חוקים ומנוע Caching בממשק הניהול.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
