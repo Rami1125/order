@@ -6,7 +6,8 @@ import { DynamicRulesPage } from './DynamicRulesPage';
 import { OrderCustomerEditor } from './OrderCustomerEditor';
 import { CatalogManager } from './CatalogManager';
 import { SystemPromptEditor } from './SystemPromptEditor';
-import { Sliders, Zap, FileSpreadsheet, Package, Code, Plus, Trash2, Save, CheckCircle, Download, Search, Globe, Link, ExternalLink, RefreshCw, Copy, Folder, Edit3, Sparkles } from 'lucide-react';
+import { WhistleblowerDashboard } from './WhistleblowerDashboard';
+import { Sliders, Zap, FileSpreadsheet, Package, Code, Plus, Trash2, Save, CheckCircle, Download, Search, Globe, Link, ExternalLink, RefreshCw, Copy, Folder, Edit3, Sparkles, Activity, Eye, Radio } from 'lucide-react';
 
 interface AdminStudioProps {
   rules: LogisticsRule[];
@@ -37,7 +38,7 @@ export const AdminStudio: React.FC<AdminStudioProps> = ({
   onCustomerCreated,
   hidePricing = false,
 }) => {
-  const [adminTab, setAdminTab] = useState<'rules' | 'dynamic-rules' | 'editor' | 'cache' | 'orders' | 'products' | 'prompt' | 'gas'>('rules');
+  const [adminTab, setAdminTab] = useState<'whistleblower' | 'rules' | 'dynamic-rules' | 'editor' | 'cache' | 'orders' | 'products' | 'prompt' | 'gas'>('whistleblower');
 
   // Google Apps Script Web App URL state
   const [gasUrl, setGasUrl] = useState<string>('https://script.google.com/macros/s/AKfycbxmdosQACLby0LqvS4qIpruE2975rjo6B-7ZXDP2iYfXzMUmklhFf_cAUsTJgzLTBbk/exec');
@@ -244,6 +245,16 @@ export const AdminStudio: React.FC<AdminStudioProps> = ({
       {/* Admin Subtabs Navigation */}
       <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 overflow-x-auto text-xs font-bold">
         <button
+          onClick={() => setAdminTab('whistleblower')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
+            adminTab === 'whistleblower' ? 'bg-rose-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          }`}
+        >
+          <Activity className="w-4 h-4 text-rose-300 animate-pulse" />
+          <span>"מלשינון" ומעקב נוכחות חי</span>
+        </button>
+
+        <button
           onClick={() => setAdminTab('dynamic-rules')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer shrink-0 ${
             adminTab === 'dynamic-rules' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -323,6 +334,15 @@ export const AdminStudio: React.FC<AdminStudioProps> = ({
           <span>Google Apps Script & Drive LIVE</span>
         </button>
       </div>
+
+      {/* SUBTAB: Whistleblower Stream & Live Presence */}
+      {adminTab === 'whistleblower' && (
+        <WhistleblowerDashboard
+          customers={customers}
+          orders={customerOrders}
+          onCustomerUpdated={onCustomerUpdated}
+        />
+      )}
 
       {/* SUBTAB: Dynamic Rules Page */}
       {adminTab === 'dynamic-rules' && (

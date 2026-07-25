@@ -211,6 +211,85 @@ async function startServer() {
     }
   });
 
+  // Whistleblower & Presence Activity Store
+  let activityLogs: Array<{
+    id: string;
+    timestamp: string;
+    customerId: string;
+    customerName: string;
+    companyName: string;
+    actionType: string;
+    details: string;
+    ipOrDevice?: string;
+  }> = [
+    {
+      id: 'act-1',
+      timestamp: new Date().toISOString(),
+      customerId: 'cst_metropolis',
+      customerName: 'ישראל ישראלי',
+      companyName: 'מטרופוליס יזמות ובנייה בע"מ',
+      actionType: 'login',
+      details: 'התחברות מוצלחת דרך Magic Portal (טוקן: token_metropolis_6213903)',
+    },
+    {
+      id: 'act-2',
+      timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
+      customerId: 'cst_metropolis',
+      customerName: 'ישראל ישראלי',
+      companyName: 'מטרופוליס יזמות ובנייה בע"מ',
+      actionType: 'chat_message',
+      details: 'שיחה עם נועה AI: "מה המחיר של בלה חול ומתי תוכל להגיע משאית מנוף לרחוב דיזנגוף?"',
+    },
+  ];
+
+  // Whistleblower Stream Endpoints
+  app.get('/api/activity', (req, res) => {
+    res.json(activityLogs);
+  });
+
+  app.post('/api/activity', (req, res) => {
+    const { customerId, customerName, companyName, actionType, details } = req.body;
+    const newLog = {
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+      customerId: customerId || 'unknown',
+      customerName: customerName || 'אנונימי',
+      companyName: companyName || '',
+      actionType: actionType || 'page_view',
+      details: details || 'ביצוע פעולה במערכת',
+    };
+    activityLogs.unshift(newLog);
+    if (activityLogs.length > 200) activityLogs.pop();
+
+    const cust = currentCustomers.find((c) => c.id === customerId);
+    if (cust) {
+      cust.lastActive = newLog.timestamp;
+      cust.isOnline = true;
+    }
+
+    res.json({ success: true, log: newLog });
+  });
+
+  // Customer Avatar Upload Endpoint
+  app.post('/api/customers/avatar', (req, res) => {
+    const { customerId, avatarUrl } = req.body;
+    const cust = currentCustomers.find((c) => c.id === customerId);
+    if (cust) {
+      cust.avatarUrl = avatarUrl;
+      activityLogs.unshift({
+        id: `act_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        customerId: cust.id,
+        customerName: cust.name,
+        companyName: cust.company,
+        actionType: 'avatar_updated',
+        details: 'עודכן לוגו חברה / תמונת פרופיל בזמן אמת',
+      });
+      return res.json({ success: true, customer: cust });
+    }
+    res.status(404).json({ error: 'Customer not found' });
+  });
+
   // 0. Get current customers
   app.get('/api/customers', (req, res) => {
     res.json(currentCustomers);

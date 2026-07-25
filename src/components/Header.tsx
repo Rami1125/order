@@ -95,24 +95,26 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{hidePricing ? 'מצב תפעולי נקי (סכומים מוסתרים)' : 'הסתר סכומים ומחירים'}</span>
             </button>
 
-            <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs dir-rtl">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-slate-500 font-medium">לקוח פעיל:</span>
-              <select
-                value={activeCustomer.id}
-                onChange={(e) => {
-                  const found = customers.find((c) => c.id === e.target.value);
-                  if (found) onSelectCustomer(found);
-                }}
-                className="bg-transparent font-bold text-slate-800 cursor-pointer focus:outline-hidden"
-              >
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-white text-slate-900">
-                    {c.name} ({c.company})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!isMagicLinkMode && (
+              <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs dir-rtl">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-slate-500 font-medium">לקוח פעיל:</span>
+                <select
+                  value={activeCustomer.id}
+                  onChange={(e) => {
+                    const found = customers.find((c) => c.id === e.target.value);
+                    if (found) onSelectCustomer(found);
+                  }}
+                  className="bg-transparent font-bold text-slate-800 cursor-pointer focus:outline-hidden"
+                >
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-white text-slate-900">
+                      {c.name} ({c.company})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex items-center gap-1.5 text-[11px] font-bold bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-lg">
               <ShieldCheck className="w-3.5 h-3.5 text-green-600" />

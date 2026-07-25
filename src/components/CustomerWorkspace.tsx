@@ -4,7 +4,8 @@ import { NoaChatbot } from './NoaChatbot';
 import { OrderProgressTracker } from './OrderProgressTracker';
 import { NoaChatHistory } from './NoaChatHistory';
 import { QuickOrderTool } from './QuickOrderTool';
-import { MessageSquare, History, Package, Truck, CheckCircle, Clock, RotateCcw, Building2, MapPin, Sparkles, AlertCircle, Activity, ChevronDown, ChevronUp, FileText, ShieldCheck, PenTool, BookOpen, Lock } from 'lucide-react';
+import { RightSideDrawer } from './RightSideDrawer';
+import { MessageSquare, History, Package, Truck, CheckCircle, Clock, RotateCcw, Building2, MapPin, Sparkles, AlertCircle, Activity, ChevronDown, ChevronUp, FileText, ShieldCheck, PenTool, BookOpen, Lock, Menu, Camera } from 'lucide-react';
 
 interface CustomerWorkspaceProps {
   customer: Customer;
@@ -29,11 +30,25 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
   const [repeatOrderPrompt, setRepeatOrderPrompt] = useState<string | undefined>(undefined);
   const [selectedActiveOrderId, setSelectedActiveOrderId] = useState<string | null>(null);
   const [showPastOrderTracker, setShowPastOrderTracker] = useState<boolean>(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
   const customerOrders = orders.filter((o) => o.customerId === customer.id || o.companyName === customer.company);
   const activeOrders = customerOrders.filter((o) => o.status !== 'סופקה');
 
   const currentActiveOrder = activeOrders.find((o) => o.id === selectedActiveOrderId) || activeOrders[0] || customerOrders[0];
+
+  const handleAvatarUpdate = async (newAvatarUrl: string) => {
+    customer.avatarUrl = newAvatarUrl;
+    try {
+      await fetch('/api/customers/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: customer.id, avatarUrl: newAvatarUrl }),
+      });
+    } catch {
+      // Ignore
+    }
+  };
 
   const getStatusBadge = (status: Order['status']) => {
     switch (status) {
@@ -71,11 +86,32 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <img
-              src={customer.avatarUrl || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=150'}
-              alt={customer.fullName}
-              className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
-            />
+            
+            {/* Hamburger Drawer Menu Trigger */}
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="p-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-md transition-transform active:scale-95 cursor-pointer flex items-center justify-center shrink-0 border border-slate-700"
+              title="פתח תפריט נשלף (Hamburger Drawer)"
+            >
+              <Menu className="w-6 h-6 text-blue-400" />
+            </button>
+
+            {/* Avatar / Logo with edit button */}
+            <div className="relative group shrink-0">
+              <img
+                src={customer.avatarUrl || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=150'}
+                alt={customer.company}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-blue-600 shadow-xs bg-white"
+              />
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="absolute -bottom-1 -left-1 bg-blue-600 text-white p-1 rounded-full border border-white shadow-xs hover:bg-blue-500 cursor-pointer"
+                title="ערוך לוגו בתפריט"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+            </div>
+
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-extrabold text-slate-900">{customer.company}</h2>
@@ -523,6 +559,18 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+      {/* Right Side Hamburger Drawer */}
+      <RightSideDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        customer={customer}
+        activeTab={activeTab}
+        onSelectTab={(tab) => setActiveTab(tab)}
+        onAvatarUpdate={handleAvatarUpdate}
+        rulesCount={rules.length}
+        ordersCount={customerOrders.length}
+      />
 
     </div>
   );

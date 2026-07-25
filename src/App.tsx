@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { MagicLinkBanner } from './components/MagicLinkBanner';
 import { CustomerWorkspace } from './components/CustomerWorkspace';
 import { AdminStudio } from './components/AdminStudio';
+import { InvalidTokenScreen } from './components/InvalidTokenScreen';
 
 export default function App() {
   const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
@@ -12,6 +13,8 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'customer' | 'admin'>('customer');
   const [hidePricing, setHidePricing] = useState<boolean>(false);
   const [isMagicLinkMode, setIsMagicLinkMode] = useState<boolean>(false);
+  const [tokenStatus, setTokenStatus] = useState<'valid' | 'invalid' | 'none'>('none');
+  const [invalidTokenValue, setInvalidTokenValue] = useState<string | null>(null);
 
   const [products, setProducts] = useState<LogisticsProduct[]>(MOCK_PRODUCTS);
   const [rules, setRules] = useState<LogisticsRule[]>(MOCK_RULES);
@@ -20,37 +23,57 @@ export default function App() {
     ...MOCK_ORDER_LOG,
   ]);
 
-  // Magic Link Auto Detection from URL Query Params (e.g. ?client=cst_rami or ?token=token_rami_123 or ?magic=true)
+  // Magic Link Auto Detection & Security Guard from URL Query Params (e.g. ?token=token_metropolis_6213903 or ?client=cst_metropolis)
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const isMagicParam = urlParams.get('magic') === 'true' || urlParams.get('mode') === 'magic';
       const clientIdParam =
+        urlParams.get('token') ||
         urlParams.get('client') ||
         urlParams.get('client_id') ||
         urlParams.get('id') ||
         urlParams.get('cst') ||
-        urlParams.get('token') ||
         urlParams.get('user');
-
-      if (clientIdParam || isMagicParam) {
-        setIsMagicLinkMode(true);
-        setViewMode('customer');
-      }
 
       if (clientIdParam) {
         const cleanParam = clientIdParam.trim().toLowerCase();
         const found = customers.find(
           (c) =>
-            c.id.toLowerCase() === cleanParam ||
             c.token.toLowerCase() === cleanParam ||
+            c.id.toLowerCase() === cleanParam ||
             c.company.toLowerCase().includes(cleanParam) ||
             c.name.toLowerCase().includes(cleanParam) ||
             c.phone.includes(cleanParam)
         );
+
         if (found) {
           setActiveCustomer(found);
+          setIsMagicLinkMode(true);
+          setViewMode('customer');
+          setTokenStatus('valid');
+
+          // Log customer login activity to Whistleblower Stream
+          fetch('/api/activity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerId: found.id,
+              customerName: found.name,
+              companyName: found.company,
+              actionType: 'login',
+              details: `התחברות מוצלחת ל-Magic Portal (טוקן: ${clientIdParam})`,
+            }),
+          }).catch(() => {});
+        } else {
+          setIsMagicLinkMode(true);
+          setTokenStatus('invalid');
+          setInvalidTokenValue(clientIdParam);
         }
+      } else if (isMagicParam) {
+        setIsMagicLinkMode(true);
+        setViewMode('customer');
+        setTokenStatus('valid');
       }
     } catch {
       // URL Parse fallback
@@ -128,6 +151,17 @@ export default function App() {
   const handleUpdateProducts = (newProducts: LogisticsProduct[]) => {
     setProducts(newProducts);
   };
+
+  if (isMagicLinkMode && tokenStatus === 'invalid') {
+    return (
+      <InvalidTokenScreen
+        tokenProvided={invalidTokenValue}
+        onRetry={() => {
+          window.location.href = window.location.pathname;
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col selection:bg-blue-600 selection:text-white">

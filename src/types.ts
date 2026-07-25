@@ -73,6 +73,19 @@ export interface Customer {
   creditLimit?: number;
   currentBalance?: number;
   avatarUrl?: string;
+  lastActive?: string;
+  isOnline?: boolean;
+}
+
+export interface CustomerActivityLog {
+  id: string;
+  timestamp: string;
+  customerId: string;
+  customerName: string;
+  companyName: string;
+  actionType: 'login' | 'chat_message' | 'draft_opened' | 'order_submitted' | 'avatar_updated' | 'page_view';
+  details: string;
+  ipOrDevice?: string;
 }
 
 export interface LogisticsRule {
