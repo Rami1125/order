@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
-import { Customer, Order, LogisticsProduct } from '../types';
+import { Customer, Order, LogisticsProduct, LogisticsRule } from '../types';
 import { NoaChatbot } from './NoaChatbot';
 import { OrderProgressTracker } from './OrderProgressTracker';
 import { NoaChatHistory } from './NoaChatHistory';
-import { MessageSquare, History, Package, Truck, CheckCircle, Clock, RotateCcw, Building2, MapPin, Sparkles, AlertCircle, Activity, ChevronDown, ChevronUp, FileText, ShieldCheck } from 'lucide-react';
+import { QuickOrderTool } from './QuickOrderTool';
+import { MessageSquare, History, Package, Truck, CheckCircle, Clock, RotateCcw, Building2, MapPin, Sparkles, AlertCircle, Activity, ChevronDown, ChevronUp, FileText, ShieldCheck, PenTool, BookOpen, Lock } from 'lucide-react';
 
 interface CustomerWorkspaceProps {
   customer: Customer;
   orders: Order[];
   products: LogisticsProduct[];
+  rules?: LogisticsRule[];
   onOrderCreated: (newOrder: Order) => void;
   hidePricing?: boolean;
+  isMagicLinkMode?: boolean;
 }
 
 export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
   customer,
   orders,
   products,
+  rules = [],
   onOrderCreated,
   hidePricing = false,
+  isMagicLinkMode = false,
 }) => {
-  const [activeTab, setActiveTab] = useState<'chat' | 'chatHistory' | 'history' | 'catalog'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'quickOrder' | 'rules' | 'chatHistory' | 'history' | 'catalog'>('chat');
   const [repeatOrderPrompt, setRepeatOrderPrompt] = useState<string | undefined>(undefined);
   const [selectedActiveOrderId, setSelectedActiveOrderId] = useState<string | null>(null);
   const [showPastOrderTracker, setShowPastOrderTracker] = useState<boolean>(false);
@@ -182,7 +187,7 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 max-w-3xl text-xs font-bold overflow-x-auto gap-1">
+      <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 w-full text-xs font-bold overflow-x-auto gap-1">
         <button
           onClick={() => setActiveTab('chat')}
           className={`flex-1 min-w-[130px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer ${
@@ -199,6 +204,36 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('quickOrder')}
+          className={`flex-1 min-w-[150px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'quickOrder'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          }`}
+        >
+          <PenTool className="w-4 h-4" />
+          <span>כלי עזר לכתיבת הזמנה</span>
+          <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            בזמן אמת
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('rules')}
+          className={`flex-1 min-w-[150px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'rules'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>ספר חוקים לוגיסטי</span>
+          <span className="bg-purple-100 text-purple-800 border border-purple-200 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            ברזל
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('chatHistory')}
           className={`flex-1 min-w-[140px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer ${
             activeTab === 'chatHistory'
@@ -208,9 +243,6 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
         >
           <FileText className="w-4 h-4" />
           <span>תיעוד שיחות ודרישות</span>
-          <span className="bg-blue-100 text-blue-800 border border-blue-200 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-            שקיפות
-          </span>
         </button>
 
         <button
@@ -247,7 +279,61 @@ export const CustomerWorkspace: React.FC<CustomerWorkspaceProps> = ({
         />
       )}
 
-      {/* TAB 2: Dedicated Conversation & Requirements History Viewer */}
+      {/* TAB 2: Quick Order Helper Tool */}
+      {activeTab === 'quickOrder' && (
+        <QuickOrderTool
+          customer={customer}
+          products={products}
+          onOrderCreated={(newOrd) => {
+            onOrderCreated(newOrd);
+            // Optionally stay or switch to chat/history
+          }}
+        />
+      )}
+
+      {/* TAB 3: Logistics Rules Book (From Sheet) */}
+      {activeTab === 'rules' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-6 dir-rtl">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-purple-600" />
+                <h3 className="font-extrabold text-slate-900 text-lg">
+                  ספר החוקים הלוגיסטי (חוקי ברזל מסונכרנים מגיליון)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 font-medium">
+                נועה AI וכלי עזר הזמנות פועלים לפי חוקי ברזל אלו מתוך הגיליון בלבד
+              </p>
+            </div>
+            <span className="bg-purple-100 text-purple-800 border border-purple-200 text-xs px-3 py-1 rounded-full font-bold">
+              סנכרון מגיליון 'חוקי_לוגיסטיקה'
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {rules.map((rule) => (
+              <div key={rule.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md font-bold">
+                    {rule.code || rule.id}
+                  </span>
+                  <span className="text-[11px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">
+                    {rule.category}
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-slate-900 text-sm">{rule.title}</h4>
+                <p className="text-xs text-slate-700 font-medium leading-relaxed">{rule.description}</p>
+                <div className="bg-white p-2 rounded-lg border border-slate-200 text-[11px] text-purple-900 font-mono">
+                  הנחיה למערכת: {rule.systemInstruction}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: Dedicated Conversation & Requirements History Viewer */}
       {activeTab === 'chatHistory' && (
         <NoaChatHistory
           customer={customer}

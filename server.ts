@@ -391,8 +391,33 @@ async function startServer() {
     };
     liveSheetsDb['תיעוד_שיחות'].rows.unshift(logRow);
 
+    // Sync to customer personal tab
+    const cleanCustomerName = orderData.customerName.replace(/[/\\?%*:|"<>]/g, '').trim();
+    const customerTabName = `${orderData.customerId}_${cleanCustomerName}`;
+    if (!liveSheetsDb[customerTabName]) {
+      liveSheetsDb[customerTabName] = {
+        headers: ['מזהה_הזמנה', 'תאריך', 'פריטים_שסופקו', 'כתובת_יעד', 'סטטוס_אספקה', 'הערות_מנהל_עבודה'],
+        rows: [],
+      };
+    }
+    liveSheetsDb[customerTabName].rows.unshift({
+      id: orderData.id,
+      'מזהה_הזמנה': orderData.id,
+      'תאריך': orderData.date,
+      'פריטים_שסופקו': orderData.items.map((i) => `${i.quantity}x ${i.productName}`).join('; '),
+      'כתובת_יעד': orderData.deliveryAddress,
+      'סטטוס_אספקה': orderData.status,
+      'הערות_מנהל_עבודה': orderData.notes || 'כלי עזר נועה AI - בזמן אמת',
+    });
+
     // Forward to external Google Apps Script Web App if configured
     if (appsScriptUrl) {
+      fetch(appsScriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'appendOrderToCustomerTab', orderData: orderData }),
+      }).catch((e) => console.error('Error sending order to Apps Script:', e));
+
       fetch(appsScriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -161,6 +161,9 @@ function doPost(e) {
       case 'createCustomerTab':
         return responseJSON(createSmartCustomerSheetFolder(data));
 
+      case 'appendOrderToCustomerTab':
+        return responseJSON(appendOrderToCustomerTabAndFolder(data.orderData || data));
+
       case 'uploadFile':
         return responseJSON(uploadFileToDrive(data));
 
@@ -425,6 +428,71 @@ function createSmartCustomerSheetFolder(payload) {
     customerName: customerName,
     tabName: tabName,
     driveFolderUrl: driveFolderUrl
+  };
+}
+
+/**
+ * כלי עזר לכתיבת הזמנה בתיקיית הלקוח ובטאב הזמנות בצורה מקצועית ובזמן אמת
+ */
+function appendOrderToCustomerTabAndFolder(orderData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const customerId = orderData.customerId || orderData.mzehLqoh || 'cst_rami';
+  const customerName = orderData.customerName || orderData.shmLqoh || 'לקוח';
+  const cleanName = customerName.replace(/[/\\?%*:|"<>]/g, '').trim();
+  const tabName = customerId + '_' + cleanName;
+
+  let sheet = ss.getSheetByName(tabName);
+  if (!sheet) {
+    createSmartCustomerSheetFolder({
+      customerId: customerId,
+      customerName: customerName,
+      companyName: orderData.companyName || customerName,
+      deliveryAddress: orderData.deliveryAddress || ''
+    });
+    sheet = ss.getSheetByName(tabName);
+  }
+
+  const itemsText = Array.isArray(orderData.items)
+    ? orderData.items.map(i => (i.quantity || 1) + 'x ' + (i.productName || i.name || 'מוצר')).join('; ')
+    : (orderData.items || '');
+
+  const orderId = orderData.id || ('ORD-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000));
+  const orderDate = orderData.date || new Date().toISOString().split('T')[0];
+  const address = orderData.deliveryAddress || '';
+  const status = orderData.status || 'התקבלה';
+  const notes = orderData.notes || 'כלי עזר נועה AI - בזמן אמת';
+
+  if (sheet) {
+    sheet.appendRow([orderId, orderDate, itemsText, address, status, notes]);
+  }
+
+  // כתיבה לגיליון הזמנות מלקוחות הכללי
+  let globalSheet = ss.getSheetByName('הזמנות_מלקוחות') || ss.getSheetByName('הזמנות מלקוחות');
+  if (globalSheet) {
+    globalSheet.appendRow([orderId, orderDate, customerId, customerName, address, itemsText, status, notes]);
+  }
+
+  // כתיבה לטאב תיעוד שיחות
+  let logSheet = ss.getSheetByName('תיעוד_שיחות');
+  if (logSheet) {
+    const timeStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    logSheet.appendRow([
+      timeStr,
+      customerId,
+      customerName,
+      'קליטת הזמנה בכלי עזר',
+      'הזמנה ' + orderId + ' נקלטה. פריטים: ' + itemsText + ' | יעד: ' + address,
+      'GoogleDrive/' + customerId + '_' + cleanName.replace(/\s+/g, '_') + '/',
+      'ord-' + orderId
+    ]);
+  }
+
+  return {
+    success: true,
+    message: 'ההזמנה נרשמה בהצלחה בטאב הלקוח ובגיליון ההזמנות בזמן אמת!',
+    orderId: orderId,
+    customerId: customerId,
+    customerName: customerName
   };
 }
 

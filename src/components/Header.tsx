@@ -10,6 +10,7 @@ interface HeaderProps {
   onSelectCustomer: (cust: Customer) => void;
   hidePricing: boolean;
   onToggleHidePricing: () => void;
+  isMagicLinkMode?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectCustomer,
   hidePricing,
   onToggleHidePricing,
+  isMagicLinkMode = false,
 }) => {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-2xs">
@@ -42,31 +44,41 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* View Switcher Tabs */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
-            <button
-              onClick={() => setViewMode('customer')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === 'customer'
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>מתחם לקוח (Magic Link)</span>
-            </button>
-            <button
-              onClick={() => setViewMode('admin')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === 'admin'
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>דף ניהול ו-Caching</span>
-            </button>
-          </div>
+          {/* View Switcher Tabs - Strictly Hides Admin Controls if in Magic Link Mode */}
+          {isMagicLinkMode ? (
+            <div className="flex items-center gap-2 bg-blue-50 text-blue-800 border border-blue-200 px-4 py-1.5 rounded-xl text-xs font-bold dir-rtl">
+              <UserCheck className="w-4 h-4 text-blue-600" />
+              <span>אפליקציית לקוח מאובטחת (מתוך גיליון)</span>
+              <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-mono">
+                {activeCustomer.name}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
+              <button
+                onClick={() => setViewMode('customer')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewMode === 'customer'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>מתחם לקוח (Magic Link)</span>
+              </button>
+              <button
+                onClick={() => setViewMode('admin')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewMode === 'admin'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>דף ניהול ו-Caching</span>
+              </button>
+            </div>
+          )}
 
           {/* Customer Profile Switcher & Status */}
           <div className="flex items-center gap-3">

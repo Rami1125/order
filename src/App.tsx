@@ -11,6 +11,7 @@ export default function App() {
   const [activeCustomer, setActiveCustomer] = useState<Customer>(MOCK_CUSTOMERS[0]);
   const [viewMode, setViewMode] = useState<'customer' | 'admin'>('customer');
   const [hidePricing, setHidePricing] = useState<boolean>(false);
+  const [isMagicLinkMode, setIsMagicLinkMode] = useState<boolean>(false);
 
   const [products, setProducts] = useState<LogisticsProduct[]>(MOCK_PRODUCTS);
   const [rules, setRules] = useState<LogisticsRule[]>(MOCK_RULES);
@@ -19,10 +20,11 @@ export default function App() {
     ...MOCK_ORDER_LOG,
   ]);
 
-  // Magic Link Auto Detection from URL Query Params (e.g. ?client=cst_rami or ?token=token_rami_123)
+  // Magic Link Auto Detection from URL Query Params (e.g. ?client=cst_rami or ?token=token_rami_123 or ?magic=true)
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
+      const isMagicParam = urlParams.get('magic') === 'true' || urlParams.get('mode') === 'magic';
       const clientIdParam =
         urlParams.get('client') ||
         urlParams.get('client_id') ||
@@ -30,6 +32,11 @@ export default function App() {
         urlParams.get('cst') ||
         urlParams.get('token') ||
         urlParams.get('user');
+
+      if (clientIdParam || isMagicParam) {
+        setIsMagicLinkMode(true);
+        setViewMode('customer');
+      }
 
       if (clientIdParam) {
         const cleanParam = clientIdParam.trim().toLowerCase();
@@ -43,7 +50,6 @@ export default function App() {
         );
         if (found) {
           setActiveCustomer(found);
-          setViewMode('customer');
         }
       }
     } catch {
@@ -135,6 +141,7 @@ export default function App() {
         onSelectCustomer={(c) => setActiveCustomer(c)}
         hidePricing={hidePricing}
         onToggleHidePricing={() => setHidePricing((prev) => !prev)}
+        isMagicLinkMode={isMagicLinkMode}
       />
 
       {/* Magic Link Banner Demonstrator */}
@@ -142,6 +149,7 @@ export default function App() {
         customer={activeCustomer}
         customers={customers}
         onSelectCustomer={(c) => setActiveCustomer(c)}
+        isMagicLinkMode={isMagicLinkMode}
       />
 
       {/* Main Content Area */}
@@ -151,8 +159,10 @@ export default function App() {
             customer={activeCustomer}
             orders={allOrders}
             products={products}
+            rules={rules}
             onOrderCreated={handleOrderCreated}
             hidePricing={hidePricing}
+            isMagicLinkMode={isMagicLinkMode}
           />
         ) : (
           <AdminStudio
